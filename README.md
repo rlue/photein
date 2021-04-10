@@ -30,13 +30,16 @@ Archivist will...
 
 (Currently only imports .jpg, .dng, .mp4, and .mov files.)
 
-Use this in combination with a custom systemd service to mount, import from,
+### So how do I use it?
+
+Use this in combination with a [custom systemd service][] to mount, import from,
 and unmount your camera’s SD card whenever you plug it in.
 
 Or, use [Syncthing][] to sync photos from your phone to a staging directory on
 your computer. Then, run archivist in a cron job to import those photos into
 your library on a daily basis.
 
+[custom systemd service]: blob/master/examples/share/systemd/user/archivist-dcim.service
 [Syncthing]: https://syncthing.net/
 
 Installation
