@@ -44,6 +44,11 @@ parser = OptionParser.new do |opts|
     '-n', '--dry-run',
     'perform a "no-op" trial run'
   )
+
+  opts.on(
+    '--compress-video',
+    're-encode video as reduced-filesize mp4'
+  )
 end
 
 begin
@@ -68,6 +73,7 @@ require 'pathname'
 
 require 'exif' # fast, but only supports JPG
 require 'mediainfo'
+require 'streamio-ffmpeg'
 
 puts "mounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
 system("mount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
@@ -114,6 +120,22 @@ def import(source_file)
   FileUtils.mkdir_p(dest_dir) unless PARAMS[:'dry-run']
 
   counter = resolve_name_collision(dest_dir.join("#{basename}*.#{ext}"))
+
+  if %w[mov mp4].include?(ext.downcase) && PARAMS[:'compress-video']
+    video = FFMPEG::Movie.new(source_file)
+
+    if video.bitrate > 2097152 # TODO: This is arbitrary; learn more to make a better-informed decision.
+      puts "> ffmpeg -i #{source_file} -c:v libx264 -crf 28 #{dest_dir.join("#{basename}#{counter}.#{ext.downcase}")}" if PARAMS[:verbose]
+      video.transcode(
+        dest_dir.join("#{basename}#{counter}.mp4").to_s,
+        %w(-map_metadata 0 -movflags use_metadata_tags -c:v libx264 -crf 28)
+      ) unless PARAMS[:'dry-run']
+      FileUtils.rm(source_file) unless PARAMS[:'dry-run']
+
+      return
+    end
+  end
+
   puts "> #{IMPORT_METHOD} #{source_file} #{dest_dir.join("#{basename}#{counter}.#{ext.downcase}")}" if PARAMS[:verbose]
   FileUtils.send(IMPORT_METHOD, source_file, dest_dir.join("#{basename}#{counter}.#{ext.downcase}")) unless PARAMS[:'dry-run']
 end
@@ -134,7 +156,14 @@ end
 
 SRC_DIR
   .join(PARAMS[:recursive] ? '**' : '')
-  .join('*.{dng,DNG,jpg,JPG,mp4,MP4,mov,MOV}')
+  .join('*.{dng,DNG,jpg,JPG}')
+  .then { |glob| Dir[glob].sort }
+  .each(&method(:import))
+
+# Video compression is time-consuming, so save it for last
+SRC_DIR
+  .join(PARAMS[:recursive] ? '**' : '')
+  .join('*.{mp4,MP4,mov,MOV}')
   .then { |glob| Dir[glob].sort }
   .each(&method(:import))
 

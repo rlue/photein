@@ -27,6 +27,7 @@ Archivist will...
 * handle conflicts for identical timestamps (`YYYY-mm-dd HH.MM.SSa.jpg`, `YYYY-mm-dd HH.MM.SSb.jpg`...)
 * fall back to file creation time if no metadata is found
 * sort files into subdirectories by year (`YYYY/YYYY-mm-dd HH.MM.SS.jpg`)
+* optionally, transcode video (for reduced filesize)
 
 (Currently only imports .jpg, .dng, .mp4, and .mov files.)
 
@@ -69,6 +70,7 @@ Dependencies
 
 * [MediaInfo][]
 * libexif (required by the [exif][] gem)
+* ffmpeg (for video transcoding/compression)
 
   ```sh
   $ brew install libexif           # macOS
