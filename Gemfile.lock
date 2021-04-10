@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    exif (2.2.0)
+    mediainfo (1.4.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  exif
+  mediainfo
+
+BUNDLED WITH
+   2.1.4
