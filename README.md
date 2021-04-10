@@ -23,10 +23,10 @@ What does it do?
 Suppose your digital camera creates files with names like `R0017839.JPG`.
 Archivist will...
 
-* rename files by timestamp (`YYYY-mm-dd HH.MM.SS.jpg`)
-* handle conflicts for identical timestamps (`YYYY-mm-dd HH.MM.SSa.jpg`, `YYYY-mm-dd HH.MM.SSb.jpg`...)
+* rename files by timestamp (`YYYY-mm-dd_HHMMSS.jpg`)
+* handle conflicts for identical timestamps (`YYYY-mm-dd_HHMMSSa.jpg`, `YYYY-mm-dd_HHMMSSb.jpg`...)
 * fall back to file creation time if no metadata is found
-* sort files into subdirectories by year (`YYYY/YYYY-mm-dd HH.MM.SS.jpg`)
+* sort files into subdirectories by year (`YYYY/YYYY-mm-dd_HHMMSS.jpg`)
 * optionally, transcode video (for reduced filesize)
 
 (Currently only imports .jpg, .dng, .mp4, and .mov files.)

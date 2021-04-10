@@ -79,7 +79,7 @@ system("mount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
 
 SRC_DIR       = Pathname.new(PARAMS[:source])
 DEST_DIR      = Pathname.new(PARAMS[:dest])
-DATE_FORMAT   = '%F %H.%M.%S'.freeze
+DATE_FORMAT   = '%F_%H%M%S'.freeze
 IMPORT_METHOD = PARAMS[:keep] ? :cp : :mv
 
 begin
