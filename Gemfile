@@ -2,6 +2,5 @@
 
 source 'https://rubygems.org'
 
-gem 'exif'
-gem 'mediainfo'
+gem 'mini_exiftool'
 gem 'streamio-ffmpeg'

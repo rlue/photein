@@ -1,8 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    exif (2.2.0)
-    mediainfo (1.4.0)
+    mini_exiftool (2.10.0)
     multi_json (1.15.0)
     streamio-ffmpeg (3.0.2)
       multi_json (~> 1.8)
@@ -11,8 +10,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  exif
-  mediainfo
+  mini_exiftool
   streamio-ffmpeg
 
 BUNDLED WITH

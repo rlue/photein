@@ -71,8 +71,7 @@ require 'date'
 require 'fileutils'
 require 'pathname'
 
-require 'exif' # fast, but only supports JPG
-require 'mediainfo'
+require 'mini_exiftool' # fast, but only supports JPG
 require 'streamio-ffmpeg'
 
 puts "mounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
@@ -98,22 +97,7 @@ end
 
 def import(source_file)
   ext       = source_file[/(?<=\.)\w+$/]
-  timestamp = case ext.downcase
-              when 'jpg'
-                begin
-                  Exif::Data.new(File.read(source_file))
-                    .then { |exif_data| exif_data.date_time_original || exif_data.date_time_digitized || exif_data.date_time }
-                    .then { |dt| DateTime.strptime(dt, '%Y:%m:%d %H:%M:%S') }
-                rescue Exif::NotReadable
-                  File.mtime(source_file)
-                end
-              when 'dng'
-                MediaInfo.from(source_file).image.encoded_date
-                  .then { |dt| DateTime.strptime(dt, '%Y:%m:%d %H:%M:%S') }
-              when 'mov', 'mp4'
-                MediaInfo.from(source_file).video.encoded_date ||
-                  File.mtime(source_file)
-              end
+  timestamp = MiniExiftool.new(source_file).then { |metadata| metadata.create_date || metadata.file_modify_date }
   dest_dir  = DEST_DIR.join(timestamp.strftime('%Y'))
   basename  = timestamp.strftime(DATE_FORMAT)
 

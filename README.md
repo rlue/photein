@@ -68,18 +68,10 @@ Use `archivist --help` for a summary of all options.
 Dependencies
 ------------
 
-* [MediaInfo][]
-* libexif (required by the [exif][] gem)
+* [ExifTool][]
 * ffmpeg (for video transcoding/compression)
 
-  ```sh
-  $ brew install libexif           # macOS
-  $ sudo apt install libexif-dev   # Debian / Ubuntu
-  $ sudo yum install libexif-devel # RedHat / Fedora / CentOS
-  ```
-
-[MediaInfo]: https://mediaarea.net/MediaInfo
-[exif]: https://github.com/tonytonyjan/exif
+[ExifTool]: https://exiftool.org/
 
 License
 -------
