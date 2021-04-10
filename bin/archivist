@@ -1,0 +1,148 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Parse opts -------------------------------------------------------------------
+require 'optparse'
+
+parser = OptionParser.new do |opts|
+  opts.version = '0.0.1'
+  opts.banner  = <<~BANNER
+    Usage: archivist [--version] [-h | --help] [<args>]
+  BANNER
+
+  opts.on(
+    '-v', '--verbose',
+    'print verbose output'
+  )
+
+  opts.on(
+    '-s SOURCE', '--source=SOURCE',
+    'specify the source directory'
+  )
+
+  opts.on(
+    '-d DESTINATION', '--dest=DESTINATION',
+    'specify the destination directory'
+  )
+
+  opts.on(
+    '-V VOLUME', '--volume=VOLUME',
+    'mount a device first (e.g., camera SD card)'
+  )
+
+  opts.on(
+    '-r', '--recursive',
+    'ingest source files recursively'
+  )
+
+  opts.on(
+    '-k', '--keep',
+    'do not delete source files'
+  )
+
+  opts.on(
+    '-n', '--dry-run',
+    'perform a "no-op" trial run'
+  )
+end
+
+begin
+  # Why a constant?
+  # Can't access local vars inside methods (like #import)
+  PARAMS = {}
+    .tap { |params| parser.parse!(into: params) }
+    .tap { |params| params[:verbose] ||= params[:'dry-run'] }
+    .freeze
+
+  %i[source dest].each { |type| raise "no #{type} directory given" if !PARAMS.key?(type) }
+rescue => e
+  warn(e.message)
+  warn(parser.help) if e.is_a?(OptionParser::ParseError)
+  exit 1
+end
+
+# Core logic -------------------------------------------------------------------
+require 'date'
+require 'fileutils'
+require 'pathname'
+
+require 'exif' # fast, but only supports JPG
+require 'mediainfo'
+
+puts "mounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
+system("mount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
+
+SRC_DIR       = Pathname.new(PARAMS[:source])
+DEST_DIR      = Pathname.new(PARAMS[:dest])
+DATE_FORMAT   = '%F %H.%M.%S'.freeze
+IMPORT_METHOD = PARAMS[:keep] ? :cp : :mv
+
+begin
+  raise "#{PARAMS[:source]}: no such directory" unless SRC_DIR.exist?
+  raise "#{PARAMS[:dest]}: no such directory" unless DEST_DIR.exist?
+
+  if Dir.empty?(SRC_DIR)
+    system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
+    raise "#{PARAMS[:source]}: no photos or videos found"
+  end
+rescue => e
+  warn(e.message)
+  exit 1
+end
+
+def import(source_file)
+  ext       = source_file[/(?<=\.)\w+$/]
+  timestamp = case ext.downcase
+              when 'jpg'
+                begin
+                  Exif::Data.new(File.read(source_file))
+                    .then { |exif_data| exif_data.date_time_original || exif_data.date_time_digitized || exif_data.date_time }
+                    .then { |dt| DateTime.strptime(dt, '%Y:%m:%d %H:%M:%S') }
+                rescue Exif::NotReadable
+                  File.mtime(source_file)
+                end
+              when 'dng'
+                MediaInfo.from(source_file).image.encoded_date
+                  .then { |dt| DateTime.strptime(dt, '%Y:%m:%d %H:%M:%S') }
+              when 'mov', 'mp4'
+                MediaInfo.from(source_file).video.encoded_date ||
+                  File.mtime(source_file)
+              end
+  dest_dir  = DEST_DIR.join(timestamp.strftime('%Y'))
+  basename  = timestamp.strftime(DATE_FORMAT)
+
+  FileUtils.mkdir_p(dest_dir) unless PARAMS[:'dry-run']
+
+  counter = resolve_name_collision(dest_dir.join("#{basename}*.#{ext}"))
+  puts "> #{IMPORT_METHOD} #{source_file} #{dest_dir.join("#{basename}#{counter}.#{ext.downcase}")}" if PARAMS[:verbose]
+  FileUtils.send(IMPORT_METHOD, source_file, dest_dir.join("#{basename}#{counter}.#{ext.downcase}")) unless PARAMS[:'dry-run']
+end
+
+def resolve_name_collision(collision_glob)
+  case Dir[collision_glob].length
+  when 0 # if no files found, no biggie
+  when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
+    puts 'conflicting timestamp found; adding counter to existing file' if PARAMS[:verbose]
+    FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
+  else # TODO: if multiple files found, rectify them?
+  end
+
+  # return the next usable counter
+  Dir[collision_glob].max&.slice(/.(?=#{Regexp.escape(collision_glob.extname)})/)&.next
+    .tap { |counter| raise 'Unresolved timestamp conflict' unless [*Array('a'..'z'), nil].include?(counter) }
+end
+
+SRC_DIR
+  .join(PARAMS[:recursive] ? '**' : '')
+  .join('*.{dng,DNG,jpg,JPG,mp4,MP4,mov,MOV}')
+  .then { |glob| Dir[glob].sort }
+  .each(&method(:import))
+
+# Cleanup ----------------------------------------------------------------------
+unless PARAMS[:keep]
+  Dir[SRC_DIR.join('**/')].sort
+    .drop(1)
+    .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
+end
+
+system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
