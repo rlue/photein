@@ -41,6 +41,11 @@ parser = OptionParser.new do |opts|
   )
 
   opts.on(
+    '-i', '--interactive',
+    'ask whether to import each file found'
+  )
+
+  opts.on(
     '-n', '--dry-run',
     'perform a "no-op" trial run'
   )
@@ -70,6 +75,7 @@ end
 require 'date'
 require 'fileutils'
 require 'pathname'
+require 'io/console'
 
 require 'mini_exiftool' # fast, but only supports JPG
 require 'streamio-ffmpeg'
@@ -103,6 +109,11 @@ rescue => e
 end
 
 def import(source_file)
+  if PARAMS[:interactive]
+    printf "Import #{source_file}? [y/N]"
+    return if STDIN.getch.downcase.tap { puts } != 'y'
+  end
+
   timestamp = MiniExiftool.new(source_file).create_date || File.mtime(source_file)
   dest_dir  = DEST_DIR.join(timestamp.strftime('%Y'))
   dest_file = dest_dir.join("#{timestamp.strftime(DATE_FORMAT)}#{source_file.extname.downcase}")
