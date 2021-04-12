@@ -29,7 +29,7 @@ Archivist will...
 * sort files into subdirectories by year (`YYYY/YYYY-mm-dd_HHMMSS.jpg`)
 * optionally, transcode video (for reduced filesize)
 
-(Currently only imports .jpg, .dng, .mp4, and .mov files.)
+(Currently only imports .jpg, .dng, .png, .mp4, and .mov files.)
 
 ### So how do I use it?
 

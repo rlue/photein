@@ -149,7 +149,7 @@ end
 
 SRC_DIR
   .join(PARAMS[:recursive] ? '**' : '')
-  .join('*.{dng,DNG,jpg,JPG}')
+  .join('*.{dng,DNG,jpg,JPG,png,PNG}')
   .then { |glob| Dir[glob].sort }
   .map { |path| Pathname.new(path) }
   .each(&method(:import))
