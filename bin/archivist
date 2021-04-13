@@ -126,6 +126,7 @@ def import(source_file)
 
   puts "> #{IMPORT_METHOD} #{source_file} #{dest_file}" if PARAMS[:verbose]
   FileUtils.send(IMPORT_METHOD, source_file, dest_file) unless PARAMS[:'dry-run']
+  FileUtils.chmod('-x', dest_file) unless PARAMS[:'dry-run']
 end
 
 def resolve_name_collision(collision_glob)
