@@ -33,25 +33,49 @@ Archivist will...
 
 ### So how do I use it?
 
-Use this in combination with a [custom systemd service][] to mount, import from,
-and unmount your camera’s SD card whenever you plug it in.
+#### 📷 Auto-import from a digital camera (Linux)
 
-Or, use [Syncthing][] to sync photos from your phone to a staging directory on
+Customize the provided [sample systemd service][]
+to mount, import from, and unmount your camera
+whenever you plug it in via USB.
+
+```sh
+$ mkdir -p ~/.local/share/systemd/user
+$ curl https://raw.githubusercontent.com/rlue/archivist/master/examples/share/systemd/user/archivist-dcim.service -o ~/.local/share/systemd/user/archivist-dcim.service
+$ systemctl --user daemon-reload
+$ systemctl --user enable archivist-dcim.service
+```
+
+> Note: The provided systemd service makes the following
+> assumptions:
+>
+> * Your device’s label is `RICOH_GR`. 
+>   (Use `systemctl --all --full -t device`
+>   to determine the label of your USB device.)
+> * You use [rbenv][] to manage your system’s Ruby environment.
+>
+> Adjust accordingly.
+
+[sample systemd service]: blob/master/examples/share/systemd/user/archivist-dcim.service
+[rbenv]: https://github.com/rbenv/rbenv
+
+#### 📱 Auto-import from an Android phone
+
+Use [Syncthing][] to sync photos from your phone to a staging directory on
 your computer. Then, run archivist in a cron job to import those photos into
 your library on a daily basis.
 
-[custom systemd service]: blob/master/examples/share/systemd/user/archivist-dcim.service
 [Syncthing]: https://syncthing.net/
 
 Installation
 ------------
 
-TBD.
-
-(Why not publish as a gem?
-The current project name conflicts with [an existing gem][] on rubygems.org.)
-
-[an existing gem]: https://rubygems.org/gems/archivist
+```sh
+$ git clone https://github.com/rlue/archivist
+$ cd archivist
+$ gem build archivist.gemspec
+$ gem install archivist-0.0.1.gem
+```
 
 Usage
 -----

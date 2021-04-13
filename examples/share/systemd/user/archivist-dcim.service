@@ -5,8 +5,8 @@ Description=Digital Photo Ingester for Ricoh GR
 After=dev-disk-by\x2dlabel-RICOH_GR.device
 
 [Service]
-ExecStart=/home/rlue/.local/bin/archivist --volume=/media/ricoh_gr --source=/media/ricoh_gr/DCIM --dest=/home/rlue/Pictures --recursive
-Restart=on-failure
+ExecStart=/home/rlue/.rbenv/bin/rbenv exec archivist --verbose --recursive --compress-video --volume=/media/ricoh-gr --source=/media/ricoh-gr/DCIM --dest=/home/rlue/Pictures
+Restart=no
 
 [Install]
 WantedBy=dev-disk-by\x2dlabel-RICOH_GR.device
