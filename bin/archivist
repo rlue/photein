@@ -54,6 +54,11 @@ parser = OptionParser.new do |opts|
     '--compress-video',
     're-encode video as reduced-filesize mp4'
   )
+
+  opts.on(
+    '--safe',
+    'skip files in use by other processes'
+  )
 end
 
 begin
@@ -76,6 +81,7 @@ require 'date'
 require 'fileutils'
 require 'pathname'
 require 'io/console'
+require 'open3'
 
 require 'mini_exiftool' # fast, but only supports JPG
 require 'streamio-ffmpeg'
@@ -112,6 +118,17 @@ def import(source_file)
   if PARAMS[:interactive]
     printf "Import #{source_file}? [y/N]"
     return if STDIN.getch.downcase.tap { puts } != 'y'
+  end
+
+  if PARAMS[:safe]
+    out, _err, status = Open3.capture3("lsof '#{source_file}'")
+    cmd, pid = out.lines[1]&.split&.first(2)
+
+    # NOTE: Does non-zero exit status ALWAYS mean file is safe to move/copy?
+    if status.to_i == 0
+      warn "skipping #{source_file}: file in use by #{cmd} (PID #{pid})"
+      return
+    end
   end
 
   timestamp = MiniExiftool.new(source_file).create_date || File.mtime(source_file)

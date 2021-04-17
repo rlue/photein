@@ -93,7 +93,8 @@ Dependencies
 ------------
 
 * [ExifTool][]
-* ffmpeg (for video transcoding/compression)
+* ffmpeg (for `--compress-video` option)
+* lsof (for `--safe` option)
 
 [ExifTool]: https://exiftool.org/
 
