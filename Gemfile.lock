@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     mini_exiftool (2.10.0)
+    mini_magick (4.11.0)
     multi_json (1.15.0)
     streamio-ffmpeg (3.0.2)
       multi_json (~> 1.8)
@@ -11,6 +12,7 @@ PLATFORMS
 
 DEPENDENCIES
   mini_exiftool
+  mini_magick
   streamio-ffmpeg
 
 BUNDLED WITH

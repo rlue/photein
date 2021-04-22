@@ -93,7 +93,8 @@ Dependencies
 ------------
 
 * [ExifTool][]
-* ffmpeg (for `--compress-video` option)
+* ImageMagick (for `--optimize-for=web` option)
+* ffmpeg (for `--optimize-for={web,desktop}` options)
 * lsof (for `--safe` option)
 
 [ExifTool]: https://exiftool.org/

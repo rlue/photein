@@ -51,13 +51,13 @@ parser = OptionParser.new do |opts|
   )
 
   opts.on(
-    '--compress-video',
-    're-encode video as reduced-filesize mp4'
+    '--safe',
+    'skip files in use by other processes'
   )
 
   opts.on(
-    '--safe',
-    'skip files in use by other processes'
+    '--optimize-for=TARGET', %i[desktop web],
+    'compress images/video before importing'
   )
 end
 
@@ -84,6 +84,7 @@ require 'io/console'
 require 'open3'
 
 require 'mini_exiftool' # fast, but only supports JPG
+require 'mini_magick'
 require 'streamio-ffmpeg'
 
 puts "mounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
@@ -140,6 +141,7 @@ def import(source_file)
   FileUtils.mkdir_p(dest_dir) unless PARAMS[:'dry-run']
 
   return if transcode_video(source_file, dest_file)
+  return if optimize_image(source_file, dest_file)
 
   puts "> #{IMPORT_METHOD} #{source_file} #{dest_file}" if PARAMS[:verbose]
   FileUtils.send(IMPORT_METHOD, source_file, dest_file) unless PARAMS[:'dry-run']
@@ -161,14 +163,47 @@ def resolve_name_collision(collision_glob)
 end
 
 def transcode_video(source_file, dest_file)
-  return false if !PARAMS[:'compress-video']
+  return false if !PARAMS[:'optimize-for']
   return false unless %w[.mov .mp4].include?(source_file.extname.downcase)
 
   video = FFMPEG::Movie.new(source_file.to_s)
-  return false if video.bitrate < 2097152
+  return false if video.bitrate < 8388608 # 1MB/s
 
-  puts "> ffmpeg -i #{source_file} -c:v libx264 -crf 28 #{dest_file}" if PARAMS[:verbose]
+  puts "transcoding #{source_file}" if PARAMS[:verbose]
   video.transcode(dest_file.sub_ext('.mp4').to_s, TRANSCODE_OPTS) unless PARAMS[:'dry-run']
+
+  puts "> rm #{source_file}" if PARAMS[:verbose] && !PARAMS[:keep]
+  FileUtils.rm(source_file) unless PARAMS[:'dry-run'] || PARAMS[:keep]
+
+  return true
+end
+
+def optimize_image(source_file, dest_file)
+  return false if PARAMS[:'optimize-for'] != :web
+
+  case source_file.extname.downcase
+  when '.jpg', '.png'
+    # continue
+  when '.dng'
+    return true # skip import
+  else
+    return false # import as normal
+  end
+
+  image = MiniMagick::Image.open(source_file)
+  return false if image.dimensions.reduce(&:*) < 2097152 # 2MP
+
+  puts "optimizing #{source_file}" if PARAMS[:verbose]
+  MiniMagick::Tool::Convert.new do |convert|
+    convert << source_file
+    convert.colorspace('sRGB')
+    convert.define('jpeg:dct-method=float')
+    convert.interlace('JPEG')
+    convert.quality('85%')
+    convert.resize('2097152@>')
+    convert.sampling_factor('4:2:0')
+    convert << dest_file
+  end unless PARAMS[:'dry-run']
 
   puts "> rm #{source_file}" if PARAMS[:verbose] && !PARAMS[:keep]
   FileUtils.rm(source_file) unless PARAMS[:'dry-run'] || PARAMS[:keep]
