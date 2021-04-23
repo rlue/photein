@@ -85,6 +85,7 @@ require 'open3'
 
 require 'mini_exiftool' # fast, but only supports JPG
 require 'mini_magick'
+require 'optipng'
 require 'streamio-ffmpeg'
 
 puts "mounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
@@ -168,8 +169,11 @@ def transcode_video(source_file, dest_file)
     return false if video.bitrate < 2097152 # 0.25MB/s
   end
 
+  dest_file = dest_file.sub_ext('.mp4')
+  temp_file = Pathname.new('/tmp').join(dest_file.basename)
+
   puts "transcoding #{source_file}" if PARAMS[:verbose]
-  video.transcode(dest_file.sub_ext('.mp4').to_s, [
+  video.transcode(temp_file.to_s, [
     '-map_metadata', '0', # https://video.stackexchange.com/a/26076
     '-movflags',     'use_metadata_tags',
     '-c:v',          'libx264',
@@ -178,6 +182,8 @@ def transcode_video(source_file, dest_file)
 
   puts "> rm #{source_file}" if PARAMS[:verbose] && !PARAMS[:keep]
   FileUtils.rm(source_file) unless PARAMS[:'dry-run'] || PARAMS[:keep]
+  puts "> #{IMPORT_METHOD} #{temp_file} #{dest_file}" if PARAMS[:verbose]
+  FileUtils.send(IMPORT_METHOD, temp_file, dest_file) unless PARAMS[:'dry-run']
 
   return true
 end
@@ -186,28 +192,29 @@ def optimize_image(source_file, dest_file)
   return false if PARAMS[:'optimize-for'] != :web
 
   case source_file.extname.downcase
-  when '.jpg', '.png'
-    # continue
+  when '.jpg'
+    image = MiniMagick::Image.open(source_file)
+    return false if image.dimensions.reduce(&:*) < 2097152 # 2MP
+
+    puts "optimizing #{source_file}" if PARAMS[:verbose]
+    MiniMagick::Tool::Convert.new do |convert|
+      convert << source_file
+      convert.colorspace('sRGB')
+      convert.define('jpeg:dct-method=float')
+      convert.interlace('JPEG')
+      convert.quality('85%')
+      convert.resize('2097152@>')
+      convert.sampling_factor('4:2:0')
+      convert << dest_file
+    end unless PARAMS[:'dry-run']
+  when '.png'
+    Optipng.optimize(source_file, level: 4) if Optipng.available?
+    return false # continue with import
   when '.dng'
     return true # skip import
   else
     return false # import as normal
   end
-
-  image = MiniMagick::Image.open(source_file)
-  return false if image.dimensions.reduce(&:*) < 2097152 # 2MP
-
-  puts "optimizing #{source_file}" if PARAMS[:verbose]
-  MiniMagick::Tool::Convert.new do |convert|
-    convert << source_file
-    convert.colorspace('sRGB')
-    convert.define('jpeg:dct-method=float')
-    convert.interlace('JPEG')
-    convert.quality('85%')
-    convert.resize('2097152@>')
-    convert.sampling_factor('4:2:0')
-    convert << dest_file
-  end unless PARAMS[:'dry-run']
 
   puts "> rm #{source_file}" if PARAMS[:verbose] && !PARAMS[:keep]
   FileUtils.rm(source_file) unless PARAMS[:'dry-run'] || PARAMS[:keep]

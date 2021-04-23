@@ -94,6 +94,7 @@ Dependencies
 
 * [ExifTool][]
 * ImageMagick (for `--optimize-for=web` option)
+* OptiPNG (for `--optimize-for=web` option)
 * ffmpeg (for `--optimize-for={web,desktop}` options)
 * lsof (for `--safe` option)
 

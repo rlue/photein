@@ -14,6 +14,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'mini_exiftool', '~> 2.10'
   s.add_dependency 'mini_magick', '~> 4.11'
+  s.add_dependency 'optipng', '~> 0.2'
   s.add_dependency 'streamio-ffmpeg', '~> 3.0'
   s.metadata = { 'source_code_uri' => 'https://github.com/rlue/archivist' }
 end

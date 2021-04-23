@@ -1,11 +1,23 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    command-builder (0.3.2)
+      pipe-run (>= 0.2.1)
+    hash-utils (2.2.0)
+      ruby-version (>= 0.4.0)
     mini_exiftool (2.10.0)
     mini_magick (4.11.0)
     multi_json (1.15.0)
+    optipng (0.2.1)
+      command-builder (>= 0.2.0)
+      unix-whereis (>= 0.1.0)
+    pipe-run (0.3.0)
+    ruby-version (0.4.3)
     streamio-ffmpeg (3.0.2)
       multi_json (~> 1.8)
+    unix-whereis (0.1.1)
+      command-builder (>= 0.2.0)
+      hash-utils (>= 0.18.0)
 
 PLATFORMS
   ruby
@@ -13,6 +25,7 @@ PLATFORMS
 DEPENDENCIES
   mini_exiftool
   mini_magick
+  optipng
   streamio-ffmpeg
 
 BUNDLED WITH
