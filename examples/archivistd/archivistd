@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# TODO: Explain yourself
+
+# * deployment: create a docker image
+#   - Ruby 2.7.0+
+#     - archivist
+#   - exiftool
+#   - imagemagick
+#   - optipng
+#   - ffmpeg
+#   - lsof
+
+require 'debouncer'
+require 'fileutils'
+require 'rb-inotify'
+
+# Config -----------------------------------------------------------------------
+DEBOUNCE_WAIT = 60 # seconds
+WATCH_DIR = ENV.fetch('WATCH_DIR')
+SRC_DEST_MAP = {
+  "#{ENV.fetch('STAGING_DIR')}/desktop" => ENV.fetch('HI_RES_DIR'),
+  "#{ENV.fetch('STAGING_DIR')}/web" => ENV.fetch('LO_RES_DIR'),
+}
+
+IMPORT_CMD = %(
+  archivist \
+    --verbose \
+    --source %s \
+    --dest %s \
+    --optimize-for %s
+)
+
+# Setup ------------------------------------------------------------------------
+Thread.abort_on_exception = true
+SRC_DEST_MAP.keys.each(&FileUtils.method(:mkdir_p))
+
+notifier = INotify::Notifier.new
+mutex = Mutex.new
+debouncer = Debouncer.new(DEBOUNCE_WAIT) do |*files|
+  SRC_DEST_MAP.keys.each { |dir| FileUtils.ln(files, dir) }
+  FileUtils.rm(files)
+  Dir["#{WATCH_DIR}/**/*"].sort.reverse
+    .each { |dir| FileUtils.rmdir(dir) if Dir.empty?(dir) }
+  break if debouncer.inspect_params[:threads] > 2 # don't let threads pile up
+
+  mutex.synchronize do
+    SRC_DEST_MAP.each do |src, dest|
+      system(IMPORT_CMD % [src, dest, src.split('/').last])
+    end
+  rescue => e
+    warn e.message
+  end
+end.reducer(:+)
+
+# Resume from interruption/failure ---------------------------------------------
+debouncer.call unless SRC_DEST_MAP.keys.all?(&Dir.method(:empty?))
+
+Dir["#{WATCH_DIR}/**/*"]
+  .select(&File.method(:file?))
+  .each { |path| debouncer.call(path) }
+
+# Start ------------------------------------------------------------------------
+call_debouncer = ->(event) do
+  debouncer.call(event.absolute_name)
+rescue => e
+  warn e.message
+end
+
+notifier.watch(WATCH_DIR, :close_write, &call_debouncer)
+
+# NOTE: inotify is not recursive,
+# so subdirectories must be watched separately!
+# (Why do Syncthing folders get special treatment?
+# Because ST works by creating hidden tempfiles and moving them upon completion)
+stfolders, simple_subdirs = Dir["#{WATCH_DIR}/**/*"]
+  .select(&File.method(:directory?))
+  .partition { |dir| Dir.children(dir).include?('.stfolder') }
+
+simple_subdirs.each { |dir| notifier.watch(dir, :close_write, &call_debouncer) }
+stfolders.each { |dir| notifier.watch(dir, :moved_to, &call_debouncer) }
+
+notifier.run
