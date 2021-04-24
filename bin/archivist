@@ -12,55 +12,7 @@ parser = OptionParser.new do |opts|
     Usage: archivist [--version] [-h | --help] [<args>]
   BANNER
 
-  opts.on(
-    '-v', '--verbose',
-    'print verbose output'
-  )
-
-  opts.on(
-    '-s SOURCE', '--source=SOURCE',
-    'specify the source directory'
-  )
-
-  opts.on(
-    '-d DESTINATION', '--dest=DESTINATION',
-    'specify the destination directory'
-  )
-
-  opts.on(
-    '-V VOLUME', '--volume=VOLUME',
-    'mount a device first (e.g., camera SD card)'
-  )
-
-  opts.on(
-    '-r', '--recursive',
-    'ingest source files recursively'
-  )
-
-  opts.on(
-    '-k', '--keep',
-    'do not delete source files'
-  )
-
-  opts.on(
-    '-i', '--interactive',
-    'ask whether to import each file found'
-  )
-
-  opts.on(
-    '-n', '--dry-run',
-    'perform a "no-op" trial run'
-  )
-
-  opts.on(
-    '--safe',
-    'skip files in use by other processes'
-  )
-
-  opts.on(
-    '--optimize-for=TARGET', %i[desktop web],
-    'compress images/video before importing'
-  )
+  Archivist::CLI_OPTIONS.each { |opt| opts.on(*opt) }
 end
 
 begin
