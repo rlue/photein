@@ -1,11 +1,13 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'archivist'
+
 # Parse opts -------------------------------------------------------------------
 require 'optparse'
 
 parser = OptionParser.new do |opts|
-  opts.version = '0.0.1'
+  opts.version = Archivist::VERSION
   opts.banner  = <<~BANNER
     Usage: archivist [--version] [-h | --help] [<args>]
   BANNER

@@ -2,7 +2,4 @@
 
 source 'https://rubygems.org'
 
-gem 'mini_exiftool'
-gem 'mini_magick'
-gem 'optipng'
-gem 'streamio-ffmpeg'
+gemspec

@@ -1,6 +1,8 @@
+require File.expand_path('./lib/archivist/version', __dir__)
+
 Gem::Specification.new do |s|
   s.name = 'archivist'
-  s.version = '0.0.1'
+  s.version = Archivist::VERSION
   s.licenses = ['MIT']
   s.required_ruby_version = '>= 2.6.0'
   s.authors = ['Ryan Lue']
@@ -8,7 +10,7 @@ Gem::Specification.new do |s|
   s.summary = 'Import/rename photos & videos from one directory to another.'
   s.description = <<~DESC.chomp
   DESC
-  s.files = ['bin/archivist']
+  s.files = `git ls-files bin lib README.md`.split
   s.executables << 'archivist'
   s.homepage = 'https://github.com/rlue/archivist'
 
@@ -16,6 +18,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'mini_magick', '~> 4.11'
   s.add_dependency 'optipng', '~> 0.2'
   s.add_dependency 'streamio-ffmpeg', '~> 3.0'
+  s.add_development_dependency 'pry', '~> 0.14'
   s.metadata = { 'source_code_uri' => 'https://github.com/rlue/archivist' }
 end
 
