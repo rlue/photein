@@ -37,7 +37,7 @@ require 'pathname'
 require 'io/console'
 require 'open3'
 
-require 'mini_exiftool' # fast, but only supports JPG
+require 'mini_exiftool'
 require 'mini_magick'
 require 'optipng'
 require 'streamio-ffmpeg'
