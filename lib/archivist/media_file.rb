@@ -20,13 +20,13 @@ module Archivist
       return if Archivist::Config.interactive && denied_by_user?
       return if Archivist::Config.safe && in_use?
 
-      FileUtils.mkdir_p(parent_dir) unless Archivist::Config.dry_run
+      FileUtils.mkdir_p(parent_dir, noop: Archivist::Config.dry_run)
 
       return if Archivist::Config.optimize_for && optimize
 
       Archivist::Logger.info("> #{import_method} #{path} #{dest_path}")
-      FileUtils.send(import_method, path, dest_path) unless Archivist::Config.dry_run
-      FileUtils.chmod('-x', dest_path) unless Archivist::Config.dry_run
+      FileUtils.send(import_method, path, dest_path, noop: Archivist::Config.dry_run)
+      FileUtils.chmod('-x', dest_path, noop: Archivist::Config.dry_run)
     end
 
     private
