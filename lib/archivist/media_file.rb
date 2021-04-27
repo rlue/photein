@@ -74,8 +74,10 @@ module Archivist
       case Dir[collision_glob].length
       when 0 # if no files found, no biggie
       when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
-        Archivist::Logger.info('conflicting timestamp found; adding counter to existing file')
-        FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
+        if Dir[collision_glob].first != collision_glob.sub('*', 'a') # don't try if it's already a lone, correctly-countered file
+          Archivist::Logger.info('conflicting timestamp found; adding counter to existing file')
+          FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
+        end
       else # TODO: if multiple files found, rectify them?
       end
 
