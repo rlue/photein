@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'archivist/version'
-require 'archivist/cli_options'
+require 'archivist/config'
 
 module Archivist
 end

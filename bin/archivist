@@ -3,61 +3,37 @@
 
 require 'archivist'
 
-# Parse opts -------------------------------------------------------------------
-require 'optparse'
+Archivist::Config.parse_opts!
 
-parser = OptionParser.new do |opts|
-  opts.version = Archivist::VERSION
-  opts.banner  = <<~BANNER
-    Usage: archivist [--version] [-h | --help] [<args>]
-  BANNER
-
-  Archivist::CLI_OPTIONS.each { |opt| opts.on(*opt) }
-end
-
-begin
-  # Why a constant?
-  # Can't access local vars inside methods (like #import)
-  PARAMS = {}
-    .tap { |params| parser.parse!(into: params) }
-    .tap { |params| params[:verbose] ||= params[:'dry-run'] }
-    .freeze
-
-  %i[source dest].each { |type| raise "no #{type} directory given" if !PARAMS.key?(type) }
-rescue => e
-  warn(e.message)
-  warn(parser.help) if e.is_a?(OptionParser::ParseError)
-  exit 1
-end
-
-# Core logic -------------------------------------------------------------------
+# stdlib
 require 'date'
 require 'fileutils'
 require 'pathname'
 require 'io/console'
 require 'open3'
 
+# gems
 require 'mini_exiftool'
 require 'mini_magick'
 require 'optipng'
 require 'streamio-ffmpeg'
 
-puts "mounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
-system("mount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
+puts "mounting #{Archivist::Config.volume}" if PARAMS.key?(:volume) && Archivist::Config.verbose
+system("mount #{Archivist::Config.volume}") if PARAMS.key?(:volume)
 
-SRC_DIR        = Pathname.new(PARAMS[:source])
-DEST_DIR       = Pathname.new(PARAMS[:dest])
+SRC_DIR        = Pathname.new(Archivist::Config.source)
+DEST_DIR       = Pathname.new(Archivist::Config.dest)
 DATE_FORMAT    = '%F_%H%M%S'.freeze
-IMPORT_METHOD  = PARAMS[:keep] ? :cp : :mv
+IMPORT_METHOD  = Archivist::Config.keep ? :cp : :mv
 
 begin
-  raise "#{PARAMS[:source]}: no such directory" unless SRC_DIR.exist?
-  raise "#{PARAMS[:dest]}: no such directory" unless DEST_DIR.exist?
+  raise "#{Archivist::Config.source}: no such directory" unless SRC_DIR.exist?
+  raise "#{Archivist::Config.dest}: no such directory" unless DEST_DIR.exist?
 
   if Dir.empty?(SRC_DIR)
-    puts "unmounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
-    system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
-    raise "#{PARAMS[:source]}: no photos or videos found"
+    puts "unmounting #{Archivist::Config.volume}" if PARAMS.key?(:volume) && Archivist::Config.verbose
+    system("umount #{Archivist::Config.volume}") if PARAMS.key?(:volume)
+    raise "#{Archivist::Config.source}: no photos or videos found"
   end
 rescue => e
   warn(e.message)
@@ -65,12 +41,12 @@ rescue => e
 end
 
 def import(source_file)
-  if PARAMS[:interactive]
+  if Archivist::Config.interactive
     printf "Import #{source_file}? [y/N]"
     return if STDIN.getch.downcase.tap { puts } != 'y'
   end
 
-  if PARAMS[:safe]
+  if Archivist::Config.safe
     out, _err, status = Open3.capture3("lsof '#{source_file}'")
     cmd, pid = out.lines[1]&.split&.first(2)
 
@@ -87,21 +63,21 @@ def import(source_file)
   counter   = resolve_name_collision(dest_file.sub_ext("*#{dest_file.extname}"))
   dest_file = dest_file.sub_ext("#{counter}#{dest_file.extname}")
 
-  FileUtils.mkdir_p(dest_dir) unless PARAMS[:'dry-run']
+  FileUtils.mkdir_p(dest_dir) unless Archivist::Config.dry_run
 
   return if transcode_video(source_file, dest_file)
   return if optimize_image(source_file, dest_file)
 
-  puts "> #{IMPORT_METHOD} #{source_file} #{dest_file}" if PARAMS[:verbose]
-  FileUtils.send(IMPORT_METHOD, source_file, dest_file) unless PARAMS[:'dry-run']
-  FileUtils.chmod('-x', dest_file) unless PARAMS[:'dry-run']
+  puts "> #{IMPORT_METHOD} #{source_file} #{dest_file}" if Archivist::Config.verbose
+  FileUtils.send(IMPORT_METHOD, source_file, dest_file) unless Archivist::Config.dry_run
+  FileUtils.chmod('-x', dest_file) unless Archivist::Config.dry_run
 end
 
 def resolve_name_collision(collision_glob)
   case Dir[collision_glob].length
   when 0 # if no files found, no biggie
   when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
-    puts 'conflicting timestamp found; adding counter to existing file' if PARAMS[:verbose]
+    puts 'conflicting timestamp found; adding counter to existing file' if Archivist::Config.verbose
     FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
   else # TODO: if multiple files found, rectify them?
   end
@@ -112,11 +88,11 @@ def resolve_name_collision(collision_glob)
 end
 
 def transcode_video(source_file, dest_file)
-  return false if !PARAMS[:'optimize-for']
+  return false if !Archivist::Config.optimize_for
   return false unless %w[.mov .mp4].include?(source_file.extname.downcase)
 
   video = FFMPEG::Movie.new(source_file.to_s)
-  case PARAMS[:'optimize-for']
+  case Archivist::Config.optimize_for
   when 'desktop'
     return false if video.bitrate < 8388608 # 1MB/s (
   when 'web'
@@ -126,31 +102,31 @@ def transcode_video(source_file, dest_file)
   dest_file = dest_file.sub_ext('.mp4')
   temp_file = Pathname.new('/tmp').join(dest_file.basename)
 
-  puts "transcoding #{source_file}" if PARAMS[:verbose]
+  puts "transcoding #{source_file}" if Archivist::Config.verbose
   video.transcode(temp_file.to_s, [
     '-map_metadata', '0', # https://video.stackexchange.com/a/26076
     '-movflags',     'use_metadata_tags',
     '-c:v',          'libx264',
-    '-crf',          PARAMS[:'optimize-for'] == :desktop ? '28' : '35',
-  ]) unless PARAMS[:'dry-run']
+    '-crf',          Archivist::Config.optimize_for == :desktop ? '28' : '35',
+  ]) unless Archivist::Config.dry_run
 
-  puts "> rm #{source_file}" if PARAMS[:verbose] && !PARAMS[:keep]
-  FileUtils.rm(source_file) unless PARAMS[:'dry-run'] || PARAMS[:keep]
-  puts "> #{IMPORT_METHOD} #{temp_file} #{dest_file}" if PARAMS[:verbose]
-  FileUtils.send(IMPORT_METHOD, temp_file, dest_file) unless PARAMS[:'dry-run']
+  puts "> rm #{source_file}" if Archivist::Config.verbose && !Archivist::Config.keep
+  FileUtils.rm(source_file) unless Archivist::Config.dry_run || Archivist::Config.keep
+  puts "> #{IMPORT_METHOD} #{temp_file} #{dest_file}" if Archivist::Config.verbose
+  FileUtils.send(IMPORT_METHOD, temp_file, dest_file) unless Archivist::Config.dry_run
 
   return true
 end
 
 def optimize_image(source_file, dest_file)
-  return false if PARAMS[:'optimize-for'] != :web
+  return false if Archivist::Config.optimize_for != :web
 
   case source_file.extname.downcase
   when '.jpg'
     image = MiniMagick::Image.open(source_file)
     return false if image.dimensions.reduce(&:*) < 2097152 # 2MP
 
-    puts "optimizing #{source_file}" if PARAMS[:verbose]
+    puts "optimizing #{source_file}" if Archivist::Config.verbose
     MiniMagick::Tool::Convert.new do |convert|
       convert << source_file
       convert.colorspace('sRGB')
@@ -160,7 +136,7 @@ def optimize_image(source_file, dest_file)
       convert.resize('2097152@>')
       convert.sampling_factor('4:2:0')
       convert << dest_file
-    end unless PARAMS[:'dry-run']
+    end unless Archivist::Config.dry_run
   when '.png'
     Optipng.optimize(source_file, level: 4) if Optipng.available?
     return false # continue with import
@@ -170,14 +146,14 @@ def optimize_image(source_file, dest_file)
     return false # import as normal
   end
 
-  puts "> rm #{source_file}" if PARAMS[:verbose] && !PARAMS[:keep]
-  FileUtils.rm(source_file) unless PARAMS[:'dry-run'] || PARAMS[:keep]
+  puts "> rm #{source_file}" if Archivist::Config.verbose && !Archivist::Config.keep
+  FileUtils.rm(source_file) unless Archivist::Config.dry_run || Archivist::Config.keep
 
   return true
 end
 
 SRC_DIR
-  .join(PARAMS[:recursive] ? '**' : '')
+  .join(Archivist::Config.recursive ? '**' : '')
   .join('*.{dng,DNG,jpg,JPG,png,PNG}')
   .then { |glob| Dir[glob].sort }
   .map { |path| Pathname.new(path) }
@@ -185,18 +161,18 @@ SRC_DIR
 
 # Video compression is time-consuming, so save it for last
 SRC_DIR
-  .join(PARAMS[:recursive] ? '**' : '')
+  .join(Archivist::Config.recursive ? '**' : '')
   .join('*.{mp4,MP4,mov,MOV}')
   .then { |glob| Dir[glob].sort }
   .map { |path| Pathname.new(path) }
   .each(&method(:import))
 
 # Cleanup ----------------------------------------------------------------------
-unless PARAMS[:keep]
+unless Archivist::Config.keep
   Dir[SRC_DIR.join('**/')].sort
     .drop(1)
     .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
 end
 
-puts "unmounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
-system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
+puts "unmounting #{Archivist::Config.volume}" if PARAMS.key?(:volume) && Archivist::Config.verbose
+system("umount #{Archivist::Config.volume}") if PARAMS.key?(:volume)
