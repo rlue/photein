@@ -14,3 +14,12 @@
 * Resolve docker build requirement `COPY ./archivist-0.0.1.gem app/`
 
 * Rename `/app` directory in Dockerfile
+
+* ```ruby
+  Signal.trap('INT') do
+    puts "unmounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
+    system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
+
+    exit 130
+  end
+  ```
