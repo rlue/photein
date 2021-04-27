@@ -17,7 +17,7 @@
 
 * ```ruby
   Signal.trap('INT') do
-    puts "unmounting #{PARAMS[:volume]}" if PARAMS.key?(:volume) && PARAMS[:verbose]
+    Archivist::Logger.debug("unmounting #{PARAMS[:volume]}") if PARAMS.key?(:volume)
     system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
 
     exit 130

@@ -2,6 +2,7 @@
 
 require 'archivist/version'
 require 'archivist/config'
+require 'archivist/logger'
 
 module Archivist
 end
