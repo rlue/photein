@@ -30,7 +30,7 @@ module Archivist
           convert << dest_path
         end unless Archivist::Config.dry_run
       when '.png'
-        Optipng.optimize(path, level: 4) if Optipng.available?
+        Optipng.optimize(path, level: 4) unless Archivist::Config.dry_run || !Optipng.available?
         return false # continue with import
       when '.dng'
         return true # skip import
