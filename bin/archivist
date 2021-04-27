@@ -2,37 +2,24 @@
 # frozen_string_literal: true
 
 require 'archivist'
+require 'pathname'
 
 Archivist::Config.parse_opts!
 Archivist::Logger.open
 
-# stdlib
-require 'date'
-require 'fileutils'
-require 'pathname'
-require 'io/console'
-require 'open3'
+# Setup ------------------------------------------------------------------------
+Archivist::Logger.debug("mounting #{Archivist::Config.volume}") if Archivist::Config.volume
+system("mount #{Archivist::Config.volume}") if Archivist::Config.volume
 
-# gems
-require 'mini_exiftool'
-require 'mini_magick'
-require 'optipng'
-require 'streamio-ffmpeg'
-
-Archivist::Logger.debug("mounting #{Archivist::Config.volume}") if PARAMS.key?(:volume)
-system("mount #{Archivist::Config.volume}") if PARAMS.key?(:volume)
-
-SRC_DIR        = Pathname.new(Archivist::Config.source)
-DEST_DIR       = Pathname.new(Archivist::Config.dest)
-DATE_FORMAT    = '%F_%H%M%S'.freeze
-IMPORT_METHOD  = Archivist::Config.keep ? :cp : :mv
+SRC_DIR  = Pathname.new(Archivist::Config.source)
+DEST_DIR = Pathname.new(Archivist::Config.dest)
 
 begin
   raise "#{Archivist::Config.source}: no such directory" unless SRC_DIR.exist?
   raise "#{Archivist::Config.dest}: no such directory" unless DEST_DIR.exist?
 
   if Dir.empty?(SRC_DIR)
-    if PARAMS.key?(:volume)
+    if Archivist::Config.volume
       Archivist::Logger.debug("unmounting #{Archivist::Config.volume}")
       system("umount #{Archivist::Config.volume}")
     end
@@ -44,132 +31,21 @@ rescue => e
   exit 1
 end
 
-def import(source_file)
-  if Archivist::Config.interactive
-    STDOUT.printf "Import #{source_file}? [y/N]"
-    return if STDIN.getch.downcase.tap { STDOUT.puts } != 'y'
-  end
-
-  if Archivist::Config.safe
-    out, _err, status = Open3.capture3("lsof '#{source_file}'")
-    cmd, pid = out.lines[1]&.split&.first(2)
-
-    # NOTE: Does non-zero exit status ALWAYS mean file is safe to move/copy?
-    if status.to_i == 0
-      Archivist::Logger.fatal("skipping #{source_file}: file in use by #{cmd} (PID #{pid})")
-      return
-    end
-  end
-
-  timestamp = MiniExiftool.new(source_file).create_date || File.mtime(source_file)
-  dest_dir  = DEST_DIR.join(timestamp.strftime('%Y'))
-  dest_file = dest_dir.join("#{timestamp.strftime(DATE_FORMAT)}#{source_file.extname.downcase}")
-  counter   = resolve_name_collision(dest_file.sub_ext("*#{dest_file.extname}"))
-  dest_file = dest_file.sub_ext("#{counter}#{dest_file.extname}")
-
-  FileUtils.mkdir_p(dest_dir) unless Archivist::Config.dry_run
-
-  return if transcode_video(source_file, dest_file)
-  return if optimize_image(source_file, dest_file)
-
-  Archivist::Logger.info("> #{IMPORT_METHOD} #{source_file} #{dest_file}")
-  FileUtils.send(IMPORT_METHOD, source_file, dest_file) unless Archivist::Config.dry_run
-  FileUtils.chmod('-x', dest_file) unless Archivist::Config.dry_run
-end
-
-def resolve_name_collision(collision_glob)
-  case Dir[collision_glob].length
-  when 0 # if no files found, no biggie
-  when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
-    Archivist::Logger.info('conflicting timestamp found; adding counter to existing file')
-    FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
-  else # TODO: if multiple files found, rectify them?
-  end
-
-  # return the next usable counter
-  Dir[collision_glob].max&.slice(/.(?=#{Regexp.escape(collision_glob.extname)})/)&.next
-    .tap { |counter| raise 'Unresolved timestamp conflict' unless [*Array('a'..'z'), nil].include?(counter) }
-end
-
-def transcode_video(source_file, dest_file)
-  return false if !Archivist::Config.optimize_for
-  return false unless %w[.mov .mp4].include?(source_file.extname.downcase)
-
-  video = FFMPEG::Movie.new(source_file.to_s)
-  case Archivist::Config.optimize_for
-  when 'desktop'
-    return false if video.bitrate < 8388608 # 1MB/s (
-  when 'web'
-    return false if video.bitrate < 2097152 # 0.25MB/s
-  end
-
-  dest_file = dest_file.sub_ext('.mp4')
-  temp_file = Pathname.new('/tmp').join(dest_file.basename)
-
-  Archivist::Logger.info("transcoding #{source_file}")
-  video.transcode(temp_file.to_s, [
-    '-map_metadata', '0', # https://video.stackexchange.com/a/26076
-    '-movflags',     'use_metadata_tags',
-    '-c:v',          'libx264',
-    '-crf',          Archivist::Config.optimize_for == :desktop ? '28' : '35',
-  ]) unless Archivist::Config.dry_run
-
-  Archivist::Logger.info("> rm #{source_file}") unless Archivist::Config.keep
-  FileUtils.rm(source_file) unless Archivist::Config.dry_run || Archivist::Config.keep
-  Archivist::Logger.info("> #{IMPORT_METHOD} #{temp_file} #{dest_file}")
-  FileUtils.send(IMPORT_METHOD, temp_file, dest_file) unless Archivist::Config.dry_run
-
-  return true
-end
-
-def optimize_image(source_file, dest_file)
-  return false if Archivist::Config.optimize_for != :web
-
-  case source_file.extname.downcase
-  when '.jpg'
-    image = MiniMagick::Image.open(source_file)
-    return false if image.dimensions.reduce(&:*) < 2097152 # 2MP
-
-    Archivist::Logger.info("optimizing #{source_file}")
-    MiniMagick::Tool::Convert.new do |convert|
-      convert << source_file
-      convert.colorspace('sRGB')
-      convert.define('jpeg:dct-method=float')
-      convert.interlace('JPEG')
-      convert.quality('85%')
-      convert.resize('2097152@>')
-      convert.sampling_factor('4:2:0')
-      convert << dest_file
-    end unless Archivist::Config.dry_run
-  when '.png'
-    Optipng.optimize(source_file, level: 4) if Optipng.available?
-    return false # continue with import
-  when '.dng'
-    return true # skip import
-  else
-    return false # import as normal
-  end
-
-  Archivist::Logger.info("> rm #{source_file}") unless Archivist::Config.keep
-  FileUtils.rm(source_file) unless Archivist::Config.dry_run || Archivist::Config.keep
-
-  return true
-end
-
+# Core Logic -------------------------------------------------------------------
 SRC_DIR
   .join(Archivist::Config.recursive ? '**' : '')
   .join('*.{dng,DNG,jpg,JPG,png,PNG}')
   .then { |glob| Dir[glob].sort }
-  .map { |path| Pathname.new(path) }
-  .each(&method(:import))
+  .map(&Archivist::Image.method(:new))
+  .each(&:import)
 
 # Video compression is time-consuming, so save it for last
 SRC_DIR
   .join(Archivist::Config.recursive ? '**' : '')
   .join('*.{mp4,MP4,mov,MOV}')
   .then { |glob| Dir[glob].sort }
-  .map { |path| Pathname.new(path) }
-  .each(&method(:import))
+  .map(&Archivist::Video.method(:new))
+  .each(&:import)
 
 # Cleanup ----------------------------------------------------------------------
 unless Archivist::Config.keep
@@ -178,5 +54,5 @@ unless Archivist::Config.keep
     .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
 end
 
-Archivist::Logger.debug("unmounting #{Archivist::Config.volume}") if PARAMS.key?(:volume)
-system("umount #{Archivist::Config.volume}") if PARAMS.key?(:volume)
+Archivist::Logger.debug("unmounting #{Archivist::Config.volume}") if Archivist::Config.volume
+system("umount #{Archivist::Config.volume}") if Archivist::Config.volume

@@ -5,8 +5,6 @@
 
 * Refactor transcoding/optimization logic
 
-* Refactor logic into separate classes
-
 * Add HEALTHCHECK to archivistd Dockerfile
 
 * Add timestamp/import strategies for chat app downloads
