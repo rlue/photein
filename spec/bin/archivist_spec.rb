@@ -309,7 +309,7 @@ RSpec.describe 'archivist' do
       before { FileUtils.cp("#{data_dir}/basic.mp4", source_dir) }
       after { Process.kill(:SIGINT, pid) }
 
-      let!(:pid) { spawn("tail -f >> #{source_dir}/basic.mp4 2>/dev/null") }
+      let!(:pid) { spawn("tail -f >> #{source_dir}/basic.mp4 2>/dev/null &") }
 
       it 'copies them anyway' do
         system("#{cmd} >/dev/null")
