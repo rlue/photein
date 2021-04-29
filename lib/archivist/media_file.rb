@@ -38,11 +38,14 @@ module Archivist
 
     def in_use?
       out, _err, status = Open3.capture3("lsof '#{path}'")
-      return false if status.to_i > 0 # Do open files ALWAYS return exit status 0?
 
-      cmd, pid = out.lines[1]&.split&.first(2)
-      Archivist::Logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
-      return true
+      if status.success? # Do open files ALWAYS return exit status 0? (I think so.)
+        cmd, pid = out.lines[1]&.split&.first(2)
+        Archivist::Logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
+        return true
+      else
+        return false
+      end
     end
 
     def parent_dir
