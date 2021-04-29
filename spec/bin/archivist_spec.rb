@@ -79,12 +79,13 @@ RSpec.describe 'archivist' do
     before do
       FileUtils.mkdir_p(source_dir)
       FileUtils.mkdir_p(dest_dir)
+      FileUtils.cp(source_files, source_dir)
     end
 
-    context 'for JPGs with timestamp metadata' do
-      let(:source_file) { "#{data_dir}/basic.jpg" }
-      before { FileUtils.cp(source_file, source_dir) }
+    let(:source_files) { Dir["#{data_dir}/basic/*.jpg"] }
+    let(:dest_files) { Dir["#{dest_dir}/**/*"].select(&File.method(:file?)).sort }
 
+    context 'for JPGs with timestamp metadata' do
       it 'moves them from source to dest' do
         expect { system("#{cmd} >/dev/null") }
           .to change { Dir.empty?(source_dir) }.from(false).to(true)
@@ -97,7 +98,7 @@ RSpec.describe 'archivist' do
       end
 
       context 'for multiple source files with identical timestamps' do
-        let(:source_file) { Dir["#{data_dir}/timestamp_conflict-*.jpg"] }
+        let(:source_files) { Dir["#{data_dir}/timestamp_conflict/*.jpg"] }
 
         it 'adds counters to filenames' do
           system("#{cmd} >/dev/null")
@@ -139,8 +140,8 @@ RSpec.describe 'archivist' do
 
       context 'with --optimize-for=desktop option' do
         let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
-        let!(:source_sha256) { Digest::SHA256.hexdigest(File.binread("#{source_dir}/basic.jpg")) }
-        let(:dest_sha256) { Digest::SHA256.hexdigest(File.binread("#{dest_dir}/2020/2020-02-14_225530.jpg")) }
+        let!(:source_sha256) { Digest::SHA256.hexdigest(File.binread(source_files.first)) }
+        let(:dest_sha256) { Digest::SHA256.hexdigest(File.binread(dest_files.first)) }
 
         it 'performs a simple copy' do
           system("#{cmd} >/dev/null")
@@ -150,8 +151,8 @@ RSpec.describe 'archivist' do
 
       context 'with --optimize-for=web option' do
         let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
-        let!(:source_resolution) { MiniMagick::Image.new("#{source_dir}/basic.jpg").dimensions.reduce(&:*) }
-        let(:dest_resolution) { MiniMagick::Image.new("#{dest_dir}/2020/2020-02-14_225530.jpg").dimensions.reduce(&:*) }
+        let!(:source_resolution) { MiniMagick::Image.new(source_files.first).dimensions.reduce(&:*) }
+        let(:dest_resolution) { MiniMagick::Image.new(dest_files.first).dimensions.reduce(&:*) }
 
         it 'reduces resolution to 2MP' do
           system("#{cmd} >/dev/null")
@@ -162,69 +163,8 @@ RSpec.describe 'archivist' do
       end
     end
 
-    context 'for JPGs downloaded from chat apps (no timestamp metadata)' do
-      before { FileUtils.cp(source_file, source_dir) }
-
-      context 'LINE' do
-        let(:source_file) { "#{data_dir}/1619697602620.jpg" }
-
-        it 'uses the timestamp in the filename' do
-          system("#{cmd} >/dev/null")
-
-          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
-            #{dest_dir}
-            └── 2021
-                └── 2021-04-29_050002.jpg
-          TREE
-        end
-      end
-
-      context 'WhatsApp' do
-        let(:source_file) { "#{data_dir}/IMG-20201230-WA0008.jpg" }
-
-        it 'uses the timestamp in the filename' do
-          system("#{cmd} >/dev/null")
-
-          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
-            #{dest_dir}
-            └── 2020
-                └── 2020-12-30_000008.jpg
-          TREE
-        end
-      end
-
-      context 'Signal' do
-        let(:source_file) { "#{data_dir}/signal-2021-04-28-163402.jpg" }
-
-        it 'uses the timestamp in the filename' do
-          system("#{cmd} >/dev/null")
-
-          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
-            #{dest_dir}
-            └── 2021
-                └── 2021-04-28_163402.jpg
-          TREE
-        end
-      end
-
-      context 'Telegram' do
-        let(:source_file) { "#{data_dir}/IMG_20210429_050349_911.jpg" }
-
-        it 'uses the timestamp in the filename' do
-          system("#{cmd} >/dev/null")
-
-          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
-            #{dest_dir}
-            └── 2021
-                └── 2021-04-29_050349.jpg
-          TREE
-        end
-      end
-    end
-
     context 'for MP4s with timestamp metadata' do
-      let(:source_file) { "#{data_dir}/basic.mp4" }
-      before { FileUtils.cp(source_file, source_dir) }
+      let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
 
       it 'moves them from source to dest' do
         expect { system("#{cmd} >/dev/null") }
@@ -278,8 +218,9 @@ RSpec.describe 'archivist' do
 
     context 'for nested source files' do
       before do
-        FileUtils.mkdir("#{source_dir}/1")
-        FileUtils.cp("#{data_dir}/basic.jpg", "#{source_dir}/1")
+        FileUtils.rm_rf(source_dir)
+        FileUtils.mkdir_p("#{source_dir}/subdir")
+        FileUtils.cp(source_files, "#{source_dir}/subdir")
       end
 
       it 'does not move them' do
@@ -306,10 +247,10 @@ RSpec.describe 'archivist' do
     end
 
     context 'for files in use by other processes' do
-      before { FileUtils.cp("#{data_dir}/basic.mp4", source_dir) }
-      after { Process.kill(:SIGINT, pid) }
+      let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
+      let!(:pid) { spawn("tail -f >> #{Dir["#{source_dir}/*"].first} 2>/dev/null &") }
 
-      let!(:pid) { spawn("tail -f >> #{source_dir}/basic.mp4 2>/dev/null &") }
+      after { Process.kill(:SIGINT, pid) }
 
       it 'copies them anyway' do
         system("#{cmd} >/dev/null")
