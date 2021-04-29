@@ -26,7 +26,7 @@ module Archivist
       ]) unless Archivist::Config.dry_run
 
       Archivist::Logger.info("> rm #{path}") unless Archivist::Config.keep
-      FileUtils.rm(path, noop: Archivist::Config.dry_run) unless Archivist::Config.keep
+      FileUtils.rm(path, noop: Archivist::Config.dry_run || Archivist::Config.keep)
       Archivist::Logger.info("> #{import_method} #{tempfile} #{dest_path.sub_ext('.mp4')}")
       FileUtils.send(import_method, tempfile, dest_path.sub_ext('.mp4'), noop: Archivist::Config.dry_run)
 

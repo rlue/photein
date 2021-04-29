@@ -40,7 +40,7 @@ module Archivist
       end
 
       Archivist::Logger.info "> rm #{path}" unless Archivist::Config.keep
-      FileUtils.rm(path, noop: Archivist::Config.dry_run) unless Archivist::Config.keep
+      FileUtils.rm(path, noop: Archivist::Config.dry_run || Archivist::Config.keep)
 
       return true
     end
