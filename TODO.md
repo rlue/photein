@@ -7,8 +7,6 @@
 
 * Add HEALTHCHECK to archivistd Dockerfile
 
-* Add timestamp/import strategies for chat app downloads
-
 * Resolve docker build requirement `COPY ./archivist-0.0.1.gem app/`
 
 * Rename `/app` directory in Dockerfile

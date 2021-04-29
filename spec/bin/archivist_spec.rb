@@ -216,6 +216,38 @@ RSpec.describe 'archivist' do
       end
     end
 
+    shared_examples 'chat app downloads (no timestamp metadata)' do |app|
+      let(:video_filename) { '2021-04-28_000007.mp4' }
+      let(:photo_filename) { '2021-04-28_000008.jpg' }
+
+      it "parses timestamps in #{app} filenames" do
+        system("#{cmd} >/dev/null")
+
+        expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+          #{dest_dir}
+          └── 2021
+              ├── #{video_filename}
+              └── #{photo_filename}
+        TREE
+      end
+    end
+
+    it_behaves_like 'chat app downloads (no timestamp metadata)', 'LINE' do
+      let(:source_files) { Dir["#{data_dir}/line/*"] }
+    end
+
+    it_behaves_like 'chat app downloads (no timestamp metadata)', 'WhatsApp' do
+      let(:source_files) { Dir["#{data_dir}/whatsapp/*"] }
+    end
+
+    it_behaves_like 'chat app downloads (no timestamp metadata)', 'Signal' do
+      let(:source_files) { Dir["#{data_dir}/signal/*"] }
+    end
+
+    it_behaves_like 'chat app downloads (no timestamp metadata)', 'Telegram' do
+      let(:source_files) { Dir["#{data_dir}/telegram/*"] }
+    end
+
     context 'for nested source files' do
       before do
         FileUtils.rm_rf(source_dir)

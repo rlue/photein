@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'time'
 
 require 'archivist/media_file'
 require 'streamio-ffmpeg'
@@ -15,7 +16,6 @@ module Archivist
       when 'web'
         return false if video.bitrate < 2097152 # 0.25MB/s
       end
-
 
       Archivist::Logger.info("transcoding #{path}")
       video.transcode(tempfile.to_s, [
@@ -37,6 +37,27 @@ module Archivist
 
     def tempfile
       Pathname.new('/tmp').join(dest_path.basename.sub_ext('.mp4'))
+    end
+
+    def timestamp
+      @timestamp ||= begin
+        metadata_stamp = MiniExiftool.new(path).create_date || nil
+        filename       = path.basename(path.extname).to_s
+        filename_stamp = case filename
+                         when /^LINE_MOVIE_\d{13}$/ # LINE: UNIX time in milliseconds (at download)
+                           Time.strptime(filename[0..-4], 'LINE_MOVIE_%s')
+                         when /^VID-\d{8}-WA\d{4}$/ # WhatsApp: date + counter (at receipt)
+                           Time.strptime(filename, 'VID-%Y%m%d-WA%M%S')
+                         when /^VID_\d{8}_\d{6}_\d{3}$/ # Telegram: datetime in milliseconds (at download)
+                           Time.strptime(filename, 'VID_%Y%m%d_%H%M%S_%L')
+                         when /^signal-\d{4}-\d{2}-\d{2}-\d{6}( \(\d+\))?$/ # Signal: datetime + optional counter (at receipt)
+                           Time.strptime(filename[0, 24], 'signal-%F-%H%M%S')
+                         else
+                           File.mtime(path)
+                         end
+
+        [metadata_stamp, filename_stamp].compact.min
+      end
     end
   end
 end
