@@ -40,7 +40,7 @@ notifier = INotify::Notifier.new
 mutex = Mutex.new
 debouncer = Debouncer.new(DEBOUNCE_WAIT) do |*files|
   SRC_DEST_MAP.keys.each { |dir| FileUtils.ln(files, dir) }
-  FileUtils.rm(files)
+  FileUtils.rm(files + Dir["#{ENV.fetch('STAGING_DIR')}/web/*.DNG"]) # FIXME (ugly hack)
   Dir["#{WATCH_DIR}/**/*"].sort.reverse
     .each { |dir| FileUtils.rmdir(dir) if Dir.empty?(dir) }
   break if debouncer.inspect_params[:threads] > 2 # don't let threads pile up
