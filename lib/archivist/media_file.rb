@@ -13,7 +13,7 @@ module Archivist
     attr_reader :path
 
     def initialize(path)
-      @path = Pathname.new(path)
+      @path = Pathname(path)
     end
 
     def import
@@ -63,11 +63,11 @@ module Archivist
     end
 
     def parent_dir
-      Pathname.new(Archivist::Config.dest).join(timestamp.strftime('%Y'))
+      Pathname(Archivist::Config.dest).join(timestamp.strftime('%Y'))
     end
 
     def tempfile
-      Pathname.new('/tmp').join(dest_path.basename.sub_ext(self.class::OPTIMIZED_FORMAT))
+      Pathname('/tmp').join(dest_path.basename.sub_ext(self.class::OPTIMIZED_FORMAT))
     end
 
     def dest_path

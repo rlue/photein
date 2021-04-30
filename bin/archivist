@@ -11,8 +11,8 @@ Archivist::Logger.open
 Archivist::Logger.debug("mounting #{Archivist::Config.volume}") if Archivist::Config.volume
 system("mount #{Archivist::Config.volume}") if Archivist::Config.volume
 
-SRC_DIR  = Pathname.new(Archivist::Config.source)
-DEST_DIR = Pathname.new(Archivist::Config.dest)
+SRC_DIR  = Pathname(Archivist::Config.source)
+DEST_DIR = Pathname(Archivist::Config.dest)
 
 begin
   raise "#{Archivist::Config.source}: no such directory" unless SRC_DIR.exist?
