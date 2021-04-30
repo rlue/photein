@@ -5,29 +5,40 @@ require 'time'
 
 require 'archivist/media_file'
 require 'streamio-ffmpeg'
+require 'terminal-size'
 
 module Archivist
   class Video < MediaFile
+    FFMPEG.logger.warn!
+
     OPTIMIZED_FORMAT = '.mp4'
+
     BITRATE_THRESHOLD = {
       desktop: 8388608, # 1MB/s
       web:     2097152, # 0.25MB/s
-    }
+    }.freeze
+
     TARGET_CRF = {
       desktop: '28',
       web:     '35',
-    }
+    }.freeze
 
     def optimize
       return if video.bitrate < BITRATE_THRESHOLD[Archivist::Config.optimize_for]
 
-      Archivist::Logger.info("transcoding #{path}")
-      video.transcode(tempfile.to_s, [
-        '-map_metadata', '0', # https://video.stackexchange.com/a/26076
-        '-movflags',     'use_metadata_tags',
-        '-c:v',          'libx264',
-        '-crf',          TARGET_CRF[Archivist::Config.optimize_for],
-      ]) unless Archivist::Config.dry_run
+      Archivist::Logger.info("transcoding #{tempfile}...")
+      return if Archivist::Config.dry_run
+
+      video.transcode(
+        tempfile.to_s,
+        [
+          '-map_metadata', '0', # https://video.stackexchange.com/a/26076
+          '-movflags',     'use_metadata_tags',
+          '-c:v',          'libx264',
+          '-crf',          TARGET_CRF[Archivist::Config.optimize_for],
+        ],
+        &method(:display_progress_bar)
+      )
     end
 
     private
@@ -51,6 +62,16 @@ module Archivist
           File.mtime(path)
         end
       end
+    end
+
+    def display_progress_bar(progress)
+      percentage   = "#{(progress * 100).to_i.to_s}%".rjust(5)
+      window_width = Terminal.size[:width]
+      bar_len      = window_width - 7
+      progress_len = (bar_len * progress).to_i
+      bg_len       = bar_len - progress_len
+      progress_bar = "[#{'#' * progress_len}#{'-' * bg_len}]#{percentage}"
+      print "#{progress_bar}\r"
     end
   end
 end
