@@ -17,3 +17,5 @@
     exit 130
   end
   ```
+
+* Also delete all tempfiles upon cleanup
