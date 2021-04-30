@@ -3,8 +3,6 @@
 
   https://support.google.com/youtube/answer/1722171
 
-* Refactor transcoding/optimization logic
-
 * Add HEALTHCHECK to archivistd Dockerfile
 
 * Resolve docker build requirement `COPY ./archivist-0.0.1.gem app/`

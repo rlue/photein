@@ -8,35 +8,32 @@ require 'streamio-ffmpeg'
 
 module Archivist
   class Video < MediaFile
+    OPTIMIZED_FORMAT = '.mp4'
+    BITRATE_THRESHOLD = {
+      desktop: 8388608, # 1MB/s
+      web:     2097152, # 0.25MB/s
+    }
+    TARGET_CRF = {
+      desktop: '28',
+      web:     '35',
+    }
+
     def optimize
-      video = FFMPEG::Movie.new(path.to_s)
-      case Archivist::Config.optimize_for
-      when 'desktop'
-        return false if video.bitrate < 8388608 # 1MB/s (
-      when 'web'
-        return false if video.bitrate < 2097152 # 0.25MB/s
-      end
+      return if video.bitrate < BITRATE_THRESHOLD[Archivist::Config.optimize_for]
 
       Archivist::Logger.info("transcoding #{path}")
       video.transcode(tempfile.to_s, [
         '-map_metadata', '0', # https://video.stackexchange.com/a/26076
         '-movflags',     'use_metadata_tags',
         '-c:v',          'libx264',
-        '-crf',          Archivist::Config.optimize_for == :desktop ? '28' : '35',
+        '-crf',          TARGET_CRF[Archivist::Config.optimize_for],
       ]) unless Archivist::Config.dry_run
-
-      Archivist::Logger.info("> rm #{path}") unless Archivist::Config.keep
-      FileUtils.rm(path, noop: Archivist::Config.dry_run || Archivist::Config.keep)
-      Archivist::Logger.info("> #{import_method} #{tempfile} #{dest_path.sub_ext('.mp4')}")
-      FileUtils.send(import_method, tempfile, dest_path.sub_ext('.mp4'), noop: Archivist::Config.dry_run)
-
-      return true
     end
 
     private
 
-    def tempfile
-      Pathname.new('/tmp').join(dest_path.basename.sub_ext('.mp4'))
+    def video
+      @video ||= FFMPEG::Movie.new(path.to_s)
     end
 
     def filename_stamp

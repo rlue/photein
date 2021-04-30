@@ -9,14 +9,14 @@ require 'optipng'
 
 module Archivist
   class Image < MediaFile
+    OPTIMIZED_FORMAT = '.jpg'
     MAX_RES_WEB = 2097152 # 2MP
 
     def optimize
-      return false if Archivist::Config.optimize_for != :web
+      return if Archivist::Config.optimize_for == :desktop
 
       case extname
-      when '.jpg'
-        image = MiniMagick::Image.open(path)
+      when '.jpg', '.heic'
         return false if image.dimensions.reduce(&:*) < MAX_RES_WEB
 
         Archivist::Logger.info "optimizing #{path}"
@@ -28,24 +28,21 @@ module Archivist
           convert.quality('85%')
           convert.resize("#{MAX_RES_WEB}@>")
           convert.sampling_factor('4:2:0')
-          convert << dest_path
+          convert << tempfile
         end unless Archivist::Config.dry_run
       when '.png'
-        Optipng.optimize(path, level: 4) unless Archivist::Config.dry_run || !Optipng.available?
-        return false # continue with import
-      when '.dng'
-        return true # skip import
-      else
-        return false # import as normal
+        return if !Optipng.available?
+
+        FileUtils.cp(path, tempfile, noop: Archivist::Config.dry_run)
+        Optipng.optimize(tempfile, level: 4) unless Archivist::Config.dry_run
       end
-
-      Archivist::Logger.info "> rm #{path}" unless Archivist::Config.keep
-      FileUtils.rm(path, noop: Archivist::Config.dry_run || Archivist::Config.keep)
-
-      return true
     end
 
     private
+
+    def image
+      @image ||= MiniMagick::Image.open(path)
+    end
 
     def filename_stamp
       path.basename(path.extname).to_s.then do |filename|
@@ -62,6 +59,14 @@ module Archivist
           File.mtime(path)
         end
       end
+    end
+
+    def non_optimizable_format?
+      return false if !Archivist::Config.optimize_for
+      return false if Archivist::Config.optimize_for == :desktop
+      return true if extname == '.dng'
+
+      return false
     end
   end
 end

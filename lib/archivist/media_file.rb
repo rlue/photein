@@ -19,14 +19,24 @@ module Archivist
     def import
       return if Archivist::Config.interactive && denied_by_user?
       return if Archivist::Config.safe && in_use?
+      return if Archivist::Config.optimize_for && non_optimizable_format?
 
       FileUtils.mkdir_p(parent_dir, noop: Archivist::Config.dry_run)
 
-      return if Archivist::Config.optimize_for && optimize
+      optimize if Archivist::Config.optimize_for
 
-      Archivist::Logger.info("> #{import_method} #{path} #{dest_path}")
-      FileUtils.send(import_method, path, dest_path, noop: Archivist::Config.dry_run)
-      FileUtils.chmod('-x', dest_path, noop: Archivist::Config.dry_run)
+      Archivist::Logger.info(<<~MSG.chomp)
+        #{Archivist::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
+      MSG
+
+      if File.exist?(tempfile)
+        FileUtils.mv(tempfile, dest_path, noop: Archivist::Config.dry_run)
+      else
+        FileUtils.cp(path, dest_path, noop: Archivist::Config.dry_run)
+        FileUtils.chmod('-x', dest_path, noop: Archivist::Config.dry_run)
+      end
+
+      FileUtils.rm(path, noop: Archivist::Config.dry_run || Archivist::Config.keep)
     end
 
     private
@@ -48,12 +58,16 @@ module Archivist
       end
     end
 
+    def non_optimizable_format? # may be overridden by subclasses
+      return false
+    end
+
     def parent_dir
       Pathname.new(Archivist::Config.dest).join(timestamp.strftime('%Y'))
     end
 
-    def import_method
-      @import_method ||= Archivist::Config.keep ? :cp : :mv
+    def tempfile
+      Pathname.new('/tmp').join(dest_path.basename.sub_ext(self.class::OPTIMIZED_FORMAT))
     end
 
     def dest_path
