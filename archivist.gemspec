@@ -23,4 +23,3 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rspec', '~> 3.10'
   s.metadata = { 'source_code_uri' => 'https://github.com/rlue/archivist' }
 end
-

@@ -3,21 +3,13 @@
 
 # TODO: Explain yourself
 
-# * deployment: create a docker image
-#   - Ruby 2.7.0+
-#     - archivist
-#   - exiftool
-#   - imagemagick
-#   - optipng
-#   - ffmpeg
-#   - lsof
-
 require 'debouncer'
 require 'fileutils'
+require 'pathname'
 require 'rb-inotify'
 
 # Config -----------------------------------------------------------------------
-DEBOUNCE_WAIT = 60 # seconds
+DEBOUNCE_WAIT = ENV.fetch('DEBOUNCE_WAIT') { 60 }.to_i # seconds
 WATCH_DIR = ENV.fetch('WATCH_DIR')
 SRC_DEST_MAP = {
   "#{ENV.fetch('STAGING_DIR')}/desktop" => ENV.fetch('HI_RES_DIR'),
@@ -36,7 +28,6 @@ IMPORT_CMD = %(
 Thread.abort_on_exception = true
 SRC_DEST_MAP.keys.each(&FileUtils.method(:mkdir_p))
 
-notifier = INotify::Notifier.new
 mutex = Mutex.new
 debouncer = Debouncer.new(DEBOUNCE_WAIT) do |*files|
   SRC_DEST_MAP.keys.each { |dir| FileUtils.ln(files, dir) }
@@ -62,23 +53,68 @@ Dir["#{WATCH_DIR}/**/*"]
   .each { |path| debouncer.call(path) }
 
 # Start ------------------------------------------------------------------------
-call_debouncer = ->(event) do
-  debouncer.call(event.absolute_name)
-rescue => e
-  warn e.message
+Thread.new do
+  call_debouncer = ->(event) do
+    debouncer.call(event.absolute_name)
+  rescue => e
+    warn e.message
+  end
+
+  import_notifier = INotify::Notifier.new
+  import_notifier.watch(WATCH_DIR, :close_write, &call_debouncer)
+
+  # NOTE: inotify is not recursive,
+  # so subdirectories must be watched separately!
+  # (Why do Syncthing folders get special treatment?
+  # Because ST works by creating hidden tempfiles and moving them upon completion)
+  stfolders, simple_subdirs = Dir["#{WATCH_DIR}/**/*"]
+    .select(&File.method(:directory?))
+    .partition { |dir| Dir.children(dir).include?('.stfolder') }
+
+  simple_subdirs.each { |dir| import_notifier.watch(dir, :close_write, &call_debouncer) }
+  stfolders.each { |dir| import_notifier.watch(dir, :moved_to, &call_debouncer) }
+
+  import_notifier.run
 end
 
-notifier.watch(WATCH_DIR, :close_write, &call_debouncer)
+Thread.new do
+  sync_deletions = ->(event) do
+    deleted_file = Pathname(event.absolute_name).realdirpath
 
-# NOTE: inotify is not recursive,
-# so subdirectories must be watched separately!
-# (Why do Syncthing folders get special treatment?
-# Because ST works by creating hidden tempfiles and moving them upon completion)
-stfolders, simple_subdirs = Dir["#{WATCH_DIR}/**/*"]
-  .select(&File.method(:directory?))
-  .partition { |dir| Dir.children(dir).include?('.stfolder') }
+    source_dir = deleted_file.ascend do |path|
+      break :hi_res if path == Pathname(ENV.fetch('HI_RES_DIR')).realdirpath
+    end || :lo_res
 
-simple_subdirs.each { |dir| notifier.watch(dir, :close_write, &call_debouncer) }
-stfolders.each { |dir| notifier.watch(dir, :moved_to, &call_debouncer) }
+    sister_file = case source_dir
+                  when :hi_res
+                    deleted_file.sub(ENV.fetch('HI_RES_DIR'), ENV.fetch('LO_RES_DIR'))
+                  when :lo_res
+                    deleted_file.sub(ENV.fetch('LO_RES_DIR'), ENV.fetch('HI_RES_DIR'))
+                  end
 
-notifier.run
+    related_files = case deleted_file.extname
+                    when '.jpg', '.dng', '.heic'
+                      %w(.jpg .dng .heic)
+                        .map { |ext| [deleted_file.sub_ext(ext), sister_file.sub_ext(ext)] }
+                        .flatten.select(&:file?)
+                    when '.mov', '.mp4'
+                      %w(.mov .mp4)
+                        .map { |ext| sister_file.sub_ext(ext) }
+                        .select(&:file?)
+                    when '.png'
+                      [sister_file]
+                    end
+
+    FileUtils.rm_rf(related_files)
+  end
+
+  deletion_notifier = INotify::Notifier.new
+
+  # NOTE: inotify is not recursive,
+  # so subdirectories must be watched separately!
+  (Dir["#{ENV.fetch('HI_RES_DIR')}/**/*"] + Dir["#{ENV.fetch('LO_RES_DIR')}/**/*"])
+    .select(&File.method(:directory?))
+    .each { |dir| deletion_notifier.watch(dir, :delete, &sync_deletions) }
+
+  deletion_notifier.run
+end.join
