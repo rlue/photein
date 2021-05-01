@@ -23,13 +23,23 @@ What does it do?
 Suppose your digital camera creates files with names like `R0017839.JPG`.
 Archivist will...
 
-* rename files by timestamp (`YYYY-mm-dd_HHMMSS.jpg`)
+* look for a timestamp in...
+  * EXIF metadata
+  * filename
+  * file birthtime
+* rename files by that timestamp (`YYYY-mm-dd_HHMMSS.jpg`)
 * handle conflicts for identical timestamps (`YYYY-mm-dd_HHMMSSa.jpg`, `YYYY-mm-dd_HHMMSSb.jpg`...)
-* fall back to file creation time if no metadata is found
 * sort files into subdirectories by year (`YYYY/YYYY-mm-dd_HHMMSS.jpg`)
-* optionally, transcode video (for reduced filesize)
+* optionally, optimize media for reduced filesize
 
-(Currently only imports .jpg, .dng, .png, .mp4, and .mov files.)
+#### Supported media formats
+
+* .jpg
+* .dng
+* .heic
+* .png
+* .mp4
+* .mov
 
 ### So how do I use it?
 
