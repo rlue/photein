@@ -56,7 +56,7 @@ module Archivist
         when /^signal-\d{4}-\d{2}-\d{2}-\d{6}( \(\d+\))?$/ # Signal: datetime + optional counter (at receipt)
           Time.strptime(filename[0, 24], 'signal-%F-%H%M%S')
         else
-          File.mtime(path)
+          File.birthtime(path)
         end
       end
     end
