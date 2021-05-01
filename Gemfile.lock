@@ -6,7 +6,6 @@ PATH
       mini_magick (~> 4.11)
       optipng (~> 0.2)
       streamio-ffmpeg (~> 3.0)
-      terminal-size (~> 0.0)
 
 GEM
   remote: https://rubygems.org/
@@ -48,7 +47,6 @@ GEM
     ruby-version (0.4.3)
     streamio-ffmpeg (3.0.2)
       multi_json (~> 1.8)
-    terminal-size (0.0.6)
     unix-whereis (0.1.1)
       command-builder (>= 0.2.0)
       hash-utils (>= 0.18.0)

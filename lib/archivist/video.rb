@@ -5,7 +5,7 @@ require 'time'
 
 require 'archivist/media_file'
 require 'streamio-ffmpeg'
-require 'terminal-size'
+require_relative '../../vendor/terminal-size/lib/terminal-size'
 
 module Archivist
   class Video < MediaFile
