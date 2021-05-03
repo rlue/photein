@@ -4,6 +4,7 @@ require 'fileutils'
 require 'io/console'
 require 'open3'
 
+require 'archivist/extname'
 require 'mini_exiftool'
 
 module Archivist
@@ -89,7 +90,7 @@ module Archivist
     end
 
     def extname
-      path.extname.downcase
+      @extname ||= Archivist::Extname.new(path)
     end
 
     def resolve_name_collision(collision_glob)

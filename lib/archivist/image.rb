@@ -64,7 +64,7 @@ module Archivist
     def non_optimizable_format?
       return false if !Archivist::Config.optimize_for
       return false if Archivist::Config.optimize_for == :desktop
-      return true if extname == '.dng'
+      return true if extname.dng?
 
       return false
     end

@@ -34,7 +34,7 @@ end
 # Core Logic -------------------------------------------------------------------
 SRC_DIR
   .join(Archivist::Config.recursive ? '**' : '')
-  .join('*.{dng,DNG,jpg,JPG,png,PNG}')
+  .join('*.{dng,DNG,jpg,JPG,jpeg,JPEG,png,PNG}')
   .then { |glob| Dir[glob].sort }
   .map(&Archivist::Image.method(:new))
   .each(&:import)
