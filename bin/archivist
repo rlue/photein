@@ -32,17 +32,25 @@ rescue => e
 end
 
 # Core Logic -------------------------------------------------------------------
+image_formats = Archivist::Image::SUPPORTED_FORMATS
+  .zip(Archivist::Image::SUPPORTED_FORMATS.map(&:upcase))
+  .flatten
+
 SRC_DIR
   .join(Archivist::Config.recursive ? '**' : '')
-  .join('*.{dng,DNG,jpg,JPG,jpeg,JPEG,png,PNG}')
+  .join("*{#{image_formats.join(',')}}")
   .then { |glob| Dir[glob].sort }
   .map(&Archivist::Image.method(:new))
   .each(&:import)
 
 # Video compression is time-consuming, so save it for last
+video_formats = Archivist::Video::SUPPORTED_FORMATS
+  .zip(Archivist::Video::SUPPORTED_FORMATS.map(&:upcase))
+  .flatten
+
 SRC_DIR
   .join(Archivist::Config.recursive ? '**' : '')
-  .join('*.{mp4,MP4,mov,MOV}')
+  .join("*{#{video_formats.join(',')}}")
   .then { |glob| Dir[glob].sort }
   .map(&Archivist::Video.method(:new))
   .each(&:import)

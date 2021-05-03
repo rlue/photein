@@ -9,6 +9,13 @@ require 'optipng'
 
 module Archivist
   class Image < MediaFile
+    SUPPORTED_FORMATS = %w(
+      .jpg
+      .jpeg
+      .dng
+      .heic
+      .png
+    ).freeze
     OPTIMIZED_FORMAT = '.jpg'
     MAX_RES_WEB = 2097152 # 2MP
 

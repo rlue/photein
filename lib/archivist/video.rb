@@ -11,6 +11,11 @@ module Archivist
   class Video < MediaFile
     FFMPEG.logger.warn!
 
+    SUPPORTED_FORMATS = %w(
+      .mov
+      .mp4
+      .webm
+    ).freeze
     OPTIMIZED_FORMAT = '.mp4'
 
     BITRATE_THRESHOLD = {
