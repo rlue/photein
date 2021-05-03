@@ -5,6 +5,7 @@
 
 require 'debouncer'
 require 'fileutils'
+require 'logger'
 require 'pathname'
 require 'rb-inotify'
 
@@ -23,6 +24,8 @@ IMPORT_CMD = %(
     --dest %s \
     --optimize-for %s
 )
+
+LOGGER = Logger.new(STDOUT).tap(&:info!)
 
 # Setup ------------------------------------------------------------------------
 Thread.abort_on_exception = true
@@ -80,6 +83,7 @@ end
 Thread.new do
   sync_deletions = ->(event) do
     deleted_file = Pathname(event.absolute_name).realdirpath
+    LOGGER.info("#{deleted_file.basename} has disappeared!")
 
     source_dir = deleted_file.ascend do |path|
       break :hi_res if path == Pathname(ENV.fetch('HI_RES_DIR')).realdirpath
@@ -105,6 +109,7 @@ Thread.new do
                       [sister_file]
                     end
 
+    related_files.each { |f| LOGGER.info("deleting #{f.realpath}") }
     FileUtils.rm_rf(related_files)
   end
 
