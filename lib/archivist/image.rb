@@ -54,6 +54,8 @@ module Archivist
     def filename_stamp
       path.basename(path.extname).to_s.then do |filename|
         case filename
+        when /^IMG_\d{8}_\d{6}(_\d{3})?$/ # Android DCIM: datetime + optional counter
+          Time.strptime(filename[0, 19], 'IMG_%Y%m%d_%H%M%S')
         when /^\d{13}$/ # LINE: UNIX time in milliseconds (at download)
           Time.strptime(filename[0..-4], '%s')
         when /^IMG-\d{8}-WA\d{4}$/ # WhatsApp: date + counter (at receipt)
@@ -62,8 +64,10 @@ module Archivist
           Time.strptime(filename, 'IMG_%Y%m%d_%H%M%S_%L')
         when /^signal-\d{4}-\d{2}-\d{2}-\d{6}( \(\d+\))?$/ # Signal: datetime + optional counter (at receipt)
           Time.strptime(filename[0, 24], 'signal-%F-%H%M%S')
+        when /^\d{13}$/ # LINE: UNIX time in milliseconds (at download)
+          Time.strptime(filename[0..-4], '%s')
         else
-          File.birthtime(path)
+          super
         end
       end
     end

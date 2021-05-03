@@ -3,6 +3,7 @@
 require 'fileutils'
 require 'io/console'
 require 'open3'
+require 'time'
 
 require 'archivist/extname'
 require 'mini_exiftool'
@@ -87,6 +88,16 @@ module Archivist
 
                        [metadata_stamp, filename_stamp].compact.min
                      end
+    end
+
+    def filename_stamp
+      Time.parse(path.basename(path.extname).to_s)
+    rescue ArgumentError
+      begin
+        File.birthtime(path)
+      rescue NotImplementedError
+        File.mtime(path)
+      end
     end
 
     def extname
