@@ -19,3 +19,6 @@
   ```
 
 * Also delete all tempfiles upon cleanup
+
+* Fix race condition in archivistd deletion logic
+  (inotify hook triggers itself)
