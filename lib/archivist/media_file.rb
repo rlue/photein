@@ -82,12 +82,7 @@ module Archivist
     end
 
     def timestamp
-      @timestamp ||= begin
-                       # sometimes #create_date returns `false`
-                       metadata_stamp = MiniExiftool.new(path).create_date || nil
-
-                       [metadata_stamp, filename_stamp].compact.min
-                     end
+      @timestamp ||= (MiniExiftool.new(path).create_date || filename_stamp)
     end
 
     def filename_stamp
