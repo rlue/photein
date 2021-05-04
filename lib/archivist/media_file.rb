@@ -44,8 +44,8 @@ module Archivist
     private
 
     def denied_by_user?
-      STDOUT.printf "Import #{path}? [y/N]"
-      (STDIN.getch.downcase != 'y').tap { STDOUT.puts }
+      $stdout.printf "Import #{path}? [y/N]"
+      (STDIN.getch.downcase != 'y').tap { $stdout.puts }
     end
 
     def in_use?

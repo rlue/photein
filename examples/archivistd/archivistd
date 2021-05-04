@@ -25,7 +25,7 @@ IMPORT_CMD = %(
     --optimize-for %s
 )
 
-LOGGER = Logger.new(STDOUT).tap(&:info!)
+LOGGER = Logger.new($stdout).tap(&:info!)
 
 # Setup ------------------------------------------------------------------------
 Thread.abort_on_exception = true

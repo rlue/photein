@@ -11,8 +11,8 @@ module Archivist
       attr_reader :stdout, :stderr
 
       def open
-        @stdout = ::Logger.new(STDOUT)
-        @stderr = ::Logger.new(STDERR)
+        @stdout = ::Logger.new($stdout)
+        @stderr = ::Logger.new($stderr)
 
         Archivist::Config.verbose ? stdout.debug! : stdout.info!
         Archivist::Config.verbose ? stderr.warn!  : stderr.fatal!
