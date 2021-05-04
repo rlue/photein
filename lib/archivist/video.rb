@@ -31,7 +31,7 @@ module Archivist
     def optimize
       return if video.bitrate < BITRATE_THRESHOLD[Archivist::Config.optimize_for]
 
-      Archivist::Logger.info("transcoding #{tempfile}...")
+      Archivist::Logger.info("transcoding #{tempfile}")
       return if Archivist::Config.dry_run
 
       video.transcode(
@@ -70,6 +70,8 @@ module Archivist
     end
 
     def display_progress_bar(progress)
+      return unless $stdout.tty?
+
       percentage   = "#{(progress * 100).to_i.to_s}%".rjust(5)
       window_width = Terminal.size[:width]
       bar_len      = window_width - 7
