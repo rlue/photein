@@ -255,6 +255,8 @@ RSpec.describe 'archivist' do
 
     context 'for MP4s with timestamp metadata' do
       let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
+      let(:utc_timestamp) { Time.new(2021, 3, 12, 18, 40, 32, 'utc') }
+      let(:local_timestamp) { utc_timestamp.getlocal }
 
       it 'converts UTC timestamps to local zone' do
         expect { system("#{cmd} >/dev/null") }
@@ -263,7 +265,7 @@ RSpec.describe 'archivist' do
         expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
           #{dest_dir}
           └── 2021
-              └── 2021-03-12_104032.mp4
+              └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
         TREE
       end
 
@@ -277,7 +279,62 @@ RSpec.describe 'archivist' do
           expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
             #{dest_dir}
             └── 2021
-                └── 2021-03-12_104032.mp4
+                └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
+          TREE
+        end
+      end
+
+      context 'with --dry-run option' do
+        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--dry-run'] }
+
+        it 'is a no-op' do
+          expect { system("#{cmd} >/dev/null") }
+            .not_to change { `tree --noreport #{dest_dir}` }
+
+          expect(Dir.empty?(dest_dir)).to be(true)
+        end
+      end
+
+      context 'with --optimize-for=desktop option' do
+        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+
+        it 'transcodes at quality -crf 28'
+      end
+
+      context 'with --optimize-for=web option' do
+        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+
+        it 'transcodes at quality -crf 35'
+      end
+    end
+
+    context 'for MOVs with timestamp metadata' do
+      let(:source_files) { Dir["#{data_dir}/basic/*.mov"] }
+      let(:utc_timestamp) { Time.new(2020, 5, 1, 7, 20, 11, 'utc') }
+      let(:local_timestamp) { utc_timestamp.getlocal }
+
+      it 'converts UTC timestamps to local zone' do
+        expect { system("#{cmd} >/dev/null") }
+          .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+        expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+          #{dest_dir}
+          └── 2020
+              └── #{local_timestamp.strftime('%F_%H%M%S')}.mov
+        TREE
+      end
+
+      context 'with --keep option' do
+        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--keep'] }
+
+        it 'copies them from source to dest' do
+          expect { system("#{cmd} >/dev/null") }
+            .not_to change { `tree --noreport #{source_dir}` }
+
+          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+            #{dest_dir}
+            └── 2020
+                └── #{local_timestamp.strftime('%F_%H%M%S')}.mov
           TREE
         end
       end
