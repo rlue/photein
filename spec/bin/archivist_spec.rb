@@ -257,7 +257,7 @@ RSpec.describe 'archivist' do
       end
     end
 
-    shared_examples 'chat app downloads (no timestamp metadata)' do |app|
+    shared_examples 'chat app downloads (with missing timestamp metadata)' do |app|
       let(:video_filename) { '2021-04-28_000007.mp4' }
       let(:photo_filename) { '2021-04-28_000008.jpg' }
 
@@ -273,19 +273,19 @@ RSpec.describe 'archivist' do
       end
     end
 
-    it_behaves_like 'chat app downloads (no timestamp metadata)', 'LINE' do
+    it_behaves_like 'chat app downloads (with missing timestamp metadata)', 'LINE' do
       let(:source_files) { Dir["#{data_dir}/line/*"] }
     end
 
-    it_behaves_like 'chat app downloads (no timestamp metadata)', 'WhatsApp' do
+    it_behaves_like 'chat app downloads (with missing timestamp metadata)', 'WhatsApp' do
       let(:source_files) { Dir["#{data_dir}/whatsapp/*"] }
     end
 
-    it_behaves_like 'chat app downloads (no timestamp metadata)', 'Signal' do
+    it_behaves_like 'chat app downloads (with missing timestamp metadata)', 'Signal' do
       let(:source_files) { Dir["#{data_dir}/signal/*"] }
     end
 
-    it_behaves_like 'chat app downloads (no timestamp metadata)', 'Telegram' do
+    it_behaves_like 'chat app downloads (with missing timestamp metadata)', 'Telegram' do
       let(:source_files) { Dir["#{data_dir}/telegram/*"] }
     end
 

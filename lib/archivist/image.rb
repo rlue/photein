@@ -51,6 +51,8 @@ module Archivist
       @image ||= MiniMagick::Image.open(path)
     end
 
+    # NOTE: This may be largely unnecessary:
+    # metadata timestamps are generally present in all cases except WhatsApp
     def filename_stamp
       path.basename(path.extname).to_s.then do |filename|
         case filename

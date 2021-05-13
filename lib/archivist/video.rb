@@ -52,6 +52,8 @@ module Archivist
       @video ||= FFMPEG::Movie.new(path.to_s)
     end
 
+    # NOTE: This may be largely unnecessary:
+    # metadata timestamps are generally present in all cases except WhatsApp
     def filename_stamp
       path.basename(path.extname).to_s.then do |filename|
         case filename
