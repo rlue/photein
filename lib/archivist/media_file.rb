@@ -31,7 +31,11 @@ module Archivist
       MSG
 
       if File.exist?(tempfile)
-        FileUtils.mv(tempfile, dest_path, noop: Archivist::Config.dry_run)
+        FileUtils.mv(
+          tempfile,
+          dest_path.sub_ext(tempfile.extname),
+          noop: Archivist::Config.dry_run
+        )
       else
         FileUtils.cp(path, dest_path, noop: Archivist::Config.dry_run)
         FileUtils.chmod('-x', dest_path, noop: Archivist::Config.dry_run)

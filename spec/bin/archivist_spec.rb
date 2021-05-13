@@ -204,6 +204,55 @@ RSpec.describe 'archivist' do
       end
     end
 
+    context 'for HEICs' do
+      let(:source_files) { Dir["#{data_dir}/basic/*.HEIC"] }
+
+      it 'moves them from source to dest' do
+        expect { system("#{cmd} >/dev/null") }
+          .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+        expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+          #{dest_dir}
+          └── 2019
+              └── 2019-12-01_120213.heic
+        TREE
+      end
+
+      context 'with --optimize-for=desktop option' do
+        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+
+        it 'moves them from source to dest' do
+          expect { system("#{cmd} >/dev/null") }
+            .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+            #{dest_dir}
+            └── 2019
+                └── 2019-12-01_120213.heic
+          TREE
+        end
+      end
+
+      context 'with --optimize-for=web option' do
+        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+        let!(:source_resolution) { MiniMagick::Image.new(source_files.first).dimensions.reduce(&:*) }
+        let(:dest_resolution) { MiniMagick::Image.new(dest_files.first).dimensions.reduce(&:*) }
+
+        it 'converts to a 2MP-max .jpg' do
+          system("#{cmd} >/dev/null")
+
+          expect(source_resolution).to be > (2 * 1024 * 1024)
+          expect(dest_resolution).to be <= (2 * 1024 * 1024)
+
+          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+            #{dest_dir}
+            └── 2019
+                └── 2019-12-01_120213.jpg
+          TREE
+        end
+      end
+    end
+
     context 'for MP4s with timestamp metadata' do
       let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
 
