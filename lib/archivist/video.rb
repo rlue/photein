@@ -4,6 +4,7 @@ require 'fileutils'
 require 'time'
 
 require 'archivist/media_file'
+require 'mediainfo'
 require 'streamio-ffmpeg'
 require_relative '../../vendor/terminal-size/lib/terminal-size'
 
@@ -50,6 +51,11 @@ module Archivist
 
     def video
       @video ||= FFMPEG::Movie.new(path.to_s)
+    end
+
+    def metadata_stamp
+      # video timestamps are typically UTC
+      MediaInfo.from(path.to_s).general.encoded_date&.getlocal
     end
 
     # NOTE: This may be largely unnecessary:

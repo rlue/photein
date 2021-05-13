@@ -207,14 +207,14 @@ RSpec.describe 'archivist' do
     context 'for MP4s with timestamp metadata' do
       let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
 
-      it 'moves them from source to dest' do
+      it 'converts UTC timestamps to local zone' do
         expect { system("#{cmd} >/dev/null") }
           .to change { Dir.empty?(source_dir) }.from(false).to(true)
 
         expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
           #{dest_dir}
           └── 2021
-              └── 2021-03-12_184032.mp4
+              └── 2021-03-12_104032.mp4
         TREE
       end
 
@@ -228,7 +228,7 @@ RSpec.describe 'archivist' do
           expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
             #{dest_dir}
             └── 2021
-                └── 2021-03-12_184032.mp4
+                └── 2021-03-12_104032.mp4
           TREE
         end
       end
@@ -331,7 +331,7 @@ RSpec.describe 'archivist' do
         expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
           #{dest_dir}
           └── 2021
-              └── 2021-03-12_184032.mp4
+              └── 2021-03-12_104032.mp4
         TREE
       end
 

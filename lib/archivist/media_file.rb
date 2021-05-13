@@ -6,7 +6,6 @@ require 'open3'
 require 'time'
 
 require 'archivist/extname'
-require 'mini_exiftool'
 
 module Archivist
   class MediaFile
@@ -82,7 +81,7 @@ module Archivist
     end
 
     def timestamp
-      @timestamp ||= (MiniExiftool.new(path).create_date || filename_stamp)
+      @timestamp ||= (metadata_stamp || filename_stamp)
     end
 
     def filename_stamp

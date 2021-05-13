@@ -103,12 +103,14 @@ Dependencies
 ------------
 
 * [ExifTool][]
+* [MediaInfo][]
 * ImageMagick (for `--optimize-for=web` option)
 * OptiPNG (for `--optimize-for=web` option)
 * ffmpeg (for `--optimize-for={web,desktop}` options)
 * lsof (for `--safe` option)
 
 [ExifTool]: https://exiftool.org/
+[MediaInfo]: https://mediaarea.net/MediaInfo
 
 License
 -------

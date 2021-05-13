@@ -4,6 +4,7 @@ require 'fileutils'
 require 'time'
 
 require 'archivist/media_file'
+require 'mini_exiftool'
 require 'mini_magick'
 require 'optipng'
 
@@ -49,6 +50,10 @@ module Archivist
 
     def image
       @image ||= MiniMagick::Image.open(path)
+    end
+
+    def metadata_stamp
+      MiniExiftool.new(path.to_s).date_time_original
     end
 
     # NOTE: This may be largely unnecessary:

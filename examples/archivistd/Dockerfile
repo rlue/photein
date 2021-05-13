@@ -6,12 +6,16 @@ WORKDIR /app
 COPY archivist-0.0.1.gem /app
 COPY archivistd /app
 
+ENV MEDIAINFO_XML_PARSER=nokogiri
+
 RUN apk add --no-cache --update \
     build-base \
     exiftool \
     imagemagick \
     ffmpeg \
-    optipng
+    mediainfo \
+    optipng \
+    tzdata
 
 RUN gem install \
     archivist-0.0.1.gem \
