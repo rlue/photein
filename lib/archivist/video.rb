@@ -17,7 +17,11 @@ module Archivist
       .mp4
       .webm
     ).freeze
-    OPTIMIZED_FORMAT = '.mp4'
+
+    OPTIMIZATION_FORMAT_MAP = {
+      desktop: { '.mov'  => '.mp4' },
+      web: { '.mov'  => '.mp4' }
+    }.freeze
 
     BITRATE_THRESHOLD = {
       desktop: 8388608, # 1MB/s

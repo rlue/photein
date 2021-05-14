@@ -5,11 +5,13 @@ require 'io/console'
 require 'open3'
 require 'time'
 
-require 'archivist/extname'
-
 module Archivist
   class MediaFile
     DATE_FORMAT = '%F_%H%M%S'.freeze
+
+    NORMAL_EXTNAME_MAP = {
+      '.jpeg' => '.jpg'
+    }.freeze
 
     attr_reader :path
 
@@ -31,11 +33,7 @@ module Archivist
       MSG
 
       if File.exist?(tempfile)
-        FileUtils.mv(
-          tempfile,
-          dest_path.sub_ext(tempfile.extname),
-          noop: Archivist::Config.dry_run
-        )
+        FileUtils.mv(tempfile, dest_path, noop: Archivist::Config.dry_run)
       else
         FileUtils.cp(path, dest_path, noop: Archivist::Config.dry_run)
         FileUtils.chmod('-x', dest_path, noop: Archivist::Config.dry_run)
@@ -72,15 +70,15 @@ module Archivist
     end
 
     def tempfile
-      Pathname('/tmp').join(dest_path.basename.sub_ext(self.class::OPTIMIZED_FORMAT))
+      Pathname('/tmp').join(dest_path.basename)
     end
 
     def dest_path
       @dest_path ||= begin
-                       base_path = parent_dir.join("#{timestamp.strftime(DATE_FORMAT)}#{extname}")
-                       counter   = resolve_name_collision(base_path.sub_ext("*#{extname}"))
+                       base_path = parent_dir.join("#{timestamp.strftime(DATE_FORMAT)}#{dest_extname}")
+                       counter   = resolve_name_collision(base_path.sub_ext("*#{dest_extname}"))
 
-                       base_path.sub_ext("#{counter}#{extname}")
+                       base_path.sub_ext("#{counter}#{dest_extname}")
                      end
     end
 
@@ -98,8 +96,13 @@ module Archivist
       end
     end
 
+    def dest_extname
+      self.class::OPTIMIZATION_FORMAT_MAP
+        .dig(Archivist::Config.optimize_for, extname) || extname
+    end
+
     def extname
-      @extname ||= Archivist::Extname.new(path)
+      @extname ||= NORMAL_EXTNAME_MAP[path.extname.downcase] || path.extname.downcase
     end
 
     def resolve_name_collision(collision_glob)

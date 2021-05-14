@@ -17,7 +17,9 @@ module Archivist
       .heic
       .png
     ).freeze
-    OPTIMIZED_FORMAT = '.jpg'
+    OPTIMIZATION_FORMAT_MAP = {
+      web: { '.heic' => '.jpg' }
+    }.freeze
     MAX_RES_WEB = 2097152 # 2MP
 
     def optimize
@@ -82,7 +84,7 @@ module Archivist
     def non_optimizable_format?
       return false if !Archivist::Config.optimize_for
       return false if Archivist::Config.optimize_for == :desktop
-      return true if extname.dng?
+      return true if extname == '.dng'
 
       return false
     end
