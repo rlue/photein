@@ -25,6 +25,8 @@ IMPORT_CMD = %(
     --optimize-for %s
 )
 
+FORMAT_GROUPS = [%w(.jpg .dng .heic), %w(.mov .mp4), %w(.png)]
+
 LOGGER = Logger.new($stdout).tap(&:info!)
 
 # Setup ------------------------------------------------------------------------
@@ -82,32 +84,22 @@ end
 
 Thread.new do
   sync_deletions = ->(event) do
-    deleted_file = Pathname(event.absolute_name).realdirpath
-    LOGGER.info("#{deleted_file.basename} has disappeared!")
+    LOGGER.info("#{event.name} has disappeared!")
 
-    source_dir = deleted_file.ascend do |path|
-      break :hi_res if path == Pathname(ENV.fetch('HI_RES_DIR')).realdirpath
-    end || :lo_res
+    deleted_file   = Pathname(event.absolute_name).realpath
 
-    sister_file = case source_dir
-                  when :hi_res
-                    deleted_file.sub(ENV.fetch('HI_RES_DIR'), ENV.fetch('LO_RES_DIR'))
-                  when :lo_res
-                    deleted_file.sub(ENV.fetch('LO_RES_DIR'), ENV.fetch('HI_RES_DIR'))
-                  end
-
-    related_files = case deleted_file.extname
-                    when '.jpg', '.dng', '.heic'
-                      %w(.jpg .dng .heic)
-                        .map { |ext| [deleted_file.sub_ext(ext), sister_file.sub_ext(ext)] }
-                        .flatten.select(&:file?)
-                    when '.mov', '.mp4'
-                      %w(.mov .mp4)
-                        .map { |ext| sister_file.sub_ext(ext) }
-                        .select(&:file?)
-                    when '.png'
-                      [sister_file]
+    sister_file    = if deleted_file.to_s.start_with?(File.expand_path(ENV['HI_RES_DIR']))
+                      deleted_file.sub(*ENV.values_at('HI_RES_DIR', 'LO_RES_DIR'))
+                    else
+                      deleted_file.sub(*ENV.values_at('LO_RES_DIR', 'HI_RES_DIR'))
                     end
+
+    sister_formats = FORMAT_GROUPS.find { |group| group.include?(deleted_file.extname) }
+
+    related_files  = [deleted_file, sister_file]
+      .product(sister_formats)
+      .map { |file, ext| file.sub_ext(ext) }
+      .select(&:file?)
 
     related_files.each { |f| LOGGER.info("deleting #{f.realpath}") }
     FileUtils.rm_rf(related_files)
