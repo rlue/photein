@@ -8,3 +8,6 @@
 * Resolve docker build requirement `COPY ./archivist-0.0.1.gem app/`
 
 * Rename `/app` directory in Dockerfile
+
+* CONSIDER: Is it a bad idea to clean up all the empty directories in the
+  source dir at exit?
