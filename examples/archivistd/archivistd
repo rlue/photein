@@ -8,6 +8,7 @@ require 'fileutils'
 require 'logger'
 require 'pathname'
 require 'rb-inotify'
+require 'tmpdir'
 
 # Config -----------------------------------------------------------------------
 DEBOUNCE_WAIT = ENV.fetch('DEBOUNCE_WAIT') { 60 }.to_i # seconds
@@ -101,8 +102,11 @@ Thread.new do
       .map { |file, ext| file.sub_ext(ext) }
       .select(&:file?)
 
+    # (Why mv to tmpdir first? Why not rm straight away?
+    # Because rm would recursively trigger this inotify callback.)
     related_files.each { |f| LOGGER.info("deleting #{f.realpath}") }
-    FileUtils.rm_rf(related_files)
+    FileUtils.mv(related_files, Dir.tmpdir)
+    FileUtils.rm(related_files.map { |f| File.join(Dir.tmpdir, f.basename) })
   end
 
   deletion_notifier = INotify::Notifier.new
