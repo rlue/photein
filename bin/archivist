@@ -21,6 +21,17 @@ rescue => e
   exit 1
 end
 
+# Cleanup ----------------------------------------------------------------------
+at_exit do
+  unless Archivist::Config.keep
+    Dir[SRC_DIR.join('**/')].sort
+      .drop(1)
+      .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
+  end
+
+  FileUtils.rm_rf(File.join(Dir.tmpdir, 'archivist'))
+end
+
 # Core Logic -------------------------------------------------------------------
 image_formats = Archivist::Image::SUPPORTED_FORMATS
   .zip(Archivist::Image::SUPPORTED_FORMATS.map(&:upcase))
@@ -44,10 +55,3 @@ SRC_DIR
   .then { |glob| Dir[glob].sort }
   .map(&Archivist::Video.method(:new))
   .each(&:import)
-
-# Cleanup ----------------------------------------------------------------------
-unless Archivist::Config.keep
-  Dir[SRC_DIR.join('**/')].sort
-    .drop(1)
-    .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
-end

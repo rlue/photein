@@ -70,7 +70,9 @@ module Archivist
     end
 
     def tempfile
-      Pathname('/tmp').join(dest_path.basename)
+      Pathname(Dir.tmpdir).join('archivist')
+        .tap(&FileUtils.method(:mkdir_p))
+        .join(dest_path.basename)
     end
 
     def dest_path

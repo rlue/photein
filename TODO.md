@@ -8,5 +8,3 @@
 * Resolve docker build requirement `COPY ./archivist-0.0.1.gem app/`
 
 * Rename `/app` directory in Dockerfile
-
-* Also delete all tempfiles upon cleanup
