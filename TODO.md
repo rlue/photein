@@ -9,13 +9,4 @@
 
 * Rename `/app` directory in Dockerfile
 
-* ```ruby
-  Signal.trap('INT') do
-    Archivist::Logger.debug("unmounting #{PARAMS[:volume]}") if PARAMS.key?(:volume)
-    system("umount #{PARAMS[:volume]}") if PARAMS.key?(:volume)
-
-    exit 130
-  end
-  ```
-
 * Also delete all tempfiles upon cleanup

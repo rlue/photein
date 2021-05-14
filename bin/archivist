@@ -8,8 +8,6 @@ Archivist::Config.parse_opts!
 Archivist::Logger.open
 
 # Setup ------------------------------------------------------------------------
-Archivist::Logger.debug("mounting #{Archivist::Config.volume}") if Archivist::Config.volume
-system("mount #{Archivist::Config.volume}") if Archivist::Config.volume
 
 SRC_DIR  = Pathname(Archivist::Config.source)
 DEST_DIR = Pathname(Archivist::Config.dest)
@@ -17,15 +15,7 @@ DEST_DIR = Pathname(Archivist::Config.dest)
 begin
   raise "#{Archivist::Config.source}: no such directory" unless SRC_DIR.exist?
   raise "#{Archivist::Config.dest}: no such directory" unless DEST_DIR.exist?
-
-  if Dir.empty?(SRC_DIR)
-    if Archivist::Config.volume
-      Archivist::Logger.debug("unmounting #{Archivist::Config.volume}")
-      system("umount #{Archivist::Config.volume}")
-    end
-
-    raise "#{Archivist::Config.source}: no photos or videos found"
-  end
+  raise "#{Archivist::Config.source}: no photos or videos found" if Dir.empty?(SRC_DIR)
 rescue => e
   Archivist::Logger.fatal(e.message)
   exit 1
@@ -61,6 +51,3 @@ unless Archivist::Config.keep
     .drop(1)
     .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
 end
-
-Archivist::Logger.debug("unmounting #{Archivist::Config.volume}") if Archivist::Config.volume
-system("umount #{Archivist::Config.volume}") if Archivist::Config.volume

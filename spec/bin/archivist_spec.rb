@@ -452,22 +452,5 @@ RSpec.describe 'archivist' do
         end
       end
     end
-
-    # NOTE: Testing this would require an ugly, ugly hack.
-    #
-    # Kernel#system / Open3.capture3 spawn a subprocess,
-    # so we can't use those with stubs/mocks
-    # (e.g., `expect(self).to receive(:system).with('mount ...')`),
-    # and we can't _actually_ {,u}mount without sudo or a custom fstab.
-    #
-    # In theory, we could use Kernel#load instead,
-    # but 1) we'd have to manually modify ARGV to make it work,
-    # and 2) I'm still not sure what the expectation would look like.
-    context 'with --volume option' do
-      it 'mounts the given volume before copying'
-      it 'unmounts the given volume after completion'
-      it 'unmounts the given volume on interrupt (Ctrl+C)'
-      it 'unmounts the given volume on failure (e.g., empty source dir)'
-    end
   end
 end

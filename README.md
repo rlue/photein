@@ -92,7 +92,6 @@ Usage
 
 ```sh
 $ archivist \
-    --volume=/media/ricoh_gr \      # mount this device first / unmount after (requires fstab entry)
     --source=/media/ricoh_gr/DCIM \ # pull photos & videos from here
     --dest=/home/rlue/Pictures      # and deposit them here (in per-year subdirectories)
 ```
