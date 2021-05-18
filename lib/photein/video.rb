@@ -3,12 +3,12 @@
 require 'fileutils'
 require 'time'
 
-require 'archivist/media_file'
+require 'photein/media_file'
 require 'mediainfo'
 require 'streamio-ffmpeg'
 require_relative '../../vendor/terminal-size/lib/terminal-size'
 
-module Archivist
+module Photein
   class Video < MediaFile
     FFMPEG.logger.warn!
 
@@ -34,10 +34,10 @@ module Archivist
     }.freeze
 
     def optimize
-      return if video.bitrate < BITRATE_THRESHOLD[Archivist::Config.optimize_for]
+      return if video.bitrate < BITRATE_THRESHOLD[Photein::Config.optimize_for]
 
-      Archivist::Logger.info("transcoding #{tempfile}")
-      return if Archivist::Config.dry_run
+      Photein::Logger.info("transcoding #{tempfile}")
+      return if Photein::Config.dry_run
 
       video.transcode(
         tempfile.to_s,
@@ -45,7 +45,7 @@ module Archivist
           '-map_metadata', '0', # https://video.stackexchange.com/a/26076
           '-movflags',     'use_metadata_tags',
           '-c:v',          'libx264',
-          '-crf',          TARGET_CRF[Archivist::Config.optimize_for],
+          '-crf',          TARGET_CRF[Photein::Config.optimize_for],
         ],
         &method(:display_progress_bar)
       )

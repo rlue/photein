@@ -3,7 +3,7 @@
 require 'logger'
 require 'singleton'
 
-module Archivist
+module Photein
   class Logger
     include Singleton
 
@@ -14,8 +14,8 @@ module Archivist
         @stdout = ::Logger.new($stdout)
         @stderr = ::Logger.new($stderr)
 
-        Archivist::Config.verbose ? stdout.debug! : stdout.info!
-        Archivist::Config.verbose ? stderr.warn!  : stderr.fatal!
+        Photein::Config.verbose ? stdout.debug! : stdout.info!
+        Photein::Config.verbose ? stderr.warn!  : stderr.fatal!
       end
 
       %i[unknown fatal error warn].each do |m|

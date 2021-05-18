@@ -5,12 +5,12 @@ require 'open3'
 
 require 'mini_magick'
 
-RSpec.describe 'archivist' do
+RSpec.describe 'photein' do
   let(:data_dir) { File.expand_path('../data', __dir__) }
   let(:tmp_dir) { File.expand_path('../tmp', __dir__) }
   let(:source_dir) { "#{tmp_dir}/source" }
   let(:dest_dir) { "#{tmp_dir}/dest" }
-  let(:cmd) { %(bin/archivist #{options.join(' ')}) }
+  let(:cmd) { %(bin/photein #{options.join(' ')}) }
   let(:options) { ['--source', source_dir, '--dest', dest_dir] }
 
   after { FileUtils.rm_rf(tmp_dir) }
@@ -24,7 +24,7 @@ RSpec.describe 'archivist' do
       it 'fails' do
         _out, err, status = Open3.capture3(cmd.split.first)
 
-        expect(err.chomp).to eq("archivist: no source directory given")
+        expect(err.chomp).to eq("photein: no source directory given")
         expect(status.exitstatus).to eq(1)
       end
     end
@@ -35,7 +35,7 @@ RSpec.describe 'archivist' do
       it 'fails' do
         _out, err, status = Open3.capture3(cmd)
 
-        expect(err.chomp).to eq("archivist: no destination directory given")
+        expect(err.chomp).to eq("photein: no destination directory given")
         expect(status.exitstatus).to eq(1)
       end
     end

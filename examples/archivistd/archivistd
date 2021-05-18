@@ -19,7 +19,7 @@ SRC_DEST_MAP = {
 }
 
 IMPORT_CMD = %(
-  archivist \
+  photein \
     --verbose \
     --source %s \
     --dest %s \

@@ -3,7 +3,7 @@ FROM ruby:3.0.1-alpine
 MAINTAINER Ryan Lue <hello@ryanlue.com>
 
 WORKDIR /app
-COPY archivist-0.0.1.gem /app
+COPY photein-0.0.1.gem /app
 COPY archivistd /app
 
 ENV MEDIAINFO_XML_PARSER=nokogiri
@@ -18,7 +18,7 @@ RUN apk add --no-cache --update \
     tzdata
 
 RUN gem install \
-    archivist-0.0.1.gem \
+    photein-0.0.1.gem \
     debouncer \
     rb-inotify
 

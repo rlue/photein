@@ -5,7 +5,7 @@ require 'io/console'
 require 'open3'
 require 'time'
 
-module Archivist
+module Photein
   class MediaFile
     DATE_FORMAT = '%F_%H%M%S'.freeze
 
@@ -20,26 +20,26 @@ module Archivist
     end
 
     def import
-      return if Archivist::Config.interactive && denied_by_user?
-      return if Archivist::Config.safe && in_use?
-      return if Archivist::Config.optimize_for && non_optimizable_format?
+      return if Photein::Config.interactive && denied_by_user?
+      return if Photein::Config.safe && in_use?
+      return if Photein::Config.optimize_for && non_optimizable_format?
 
-      FileUtils.mkdir_p(parent_dir, noop: Archivist::Config.dry_run)
+      FileUtils.mkdir_p(parent_dir, noop: Photein::Config.dry_run)
 
-      optimize if Archivist::Config.optimize_for
+      optimize if Photein::Config.optimize_for
 
-      Archivist::Logger.info(<<~MSG.chomp)
-        #{Archivist::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
+      Photein::Logger.info(<<~MSG.chomp)
+        #{Photein::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
       MSG
 
       if File.exist?(tempfile)
-        FileUtils.mv(tempfile, dest_path, noop: Archivist::Config.dry_run)
+        FileUtils.mv(tempfile, dest_path, noop: Photein::Config.dry_run)
       else
-        FileUtils.cp(path, dest_path, noop: Archivist::Config.dry_run)
-        FileUtils.chmod('-x', dest_path, noop: Archivist::Config.dry_run)
+        FileUtils.cp(path, dest_path, noop: Photein::Config.dry_run)
+        FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
       end
 
-      FileUtils.rm(path, noop: Archivist::Config.dry_run || Archivist::Config.keep)
+      FileUtils.rm(path, noop: Photein::Config.dry_run || Photein::Config.keep)
     end
 
     private
@@ -54,7 +54,7 @@ module Archivist
 
       if status.success? # Do open files ALWAYS return exit status 0? (I think so.)
         cmd, pid = out.lines[1]&.split&.first(2)
-        Archivist::Logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
+        Photein::Logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
         return true
       else
         return false
@@ -66,11 +66,11 @@ module Archivist
     end
 
     def parent_dir
-      Pathname(Archivist::Config.dest).join(timestamp.strftime('%Y'))
+      Pathname(Photein::Config.dest).join(timestamp.strftime('%Y'))
     end
 
     def tempfile
-      Pathname(Dir.tmpdir).join('archivist')
+      Pathname(Dir.tmpdir).join('photein')
         .tap(&FileUtils.method(:mkdir_p))
         .join(dest_path.basename)
     end
@@ -100,7 +100,7 @@ module Archivist
 
     def dest_extname
       self.class::OPTIMIZATION_FORMAT_MAP
-        .dig(Archivist::Config.optimize_for, extname) || extname
+        .dig(Photein::Config.optimize_for, extname) || extname
     end
 
     def extname
@@ -112,7 +112,7 @@ module Archivist
       when 0 # if no files found, no biggie
       when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
         if Dir[collision_glob].first != collision_glob.sub('*', 'a') # don't try if it's already a lone, correctly-countered file
-          Archivist::Logger.info('conflicting timestamp found; adding counter to existing file')
+          Photein::Logger.info('conflicting timestamp found; adding counter to existing file')
           FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
         end
       else # TODO: if multiple files found, rectify them?

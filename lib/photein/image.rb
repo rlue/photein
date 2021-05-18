@@ -3,12 +3,12 @@
 require 'fileutils'
 require 'time'
 
-require 'archivist/media_file'
+require 'photein/media_file'
 require 'mini_exiftool'
 require 'mini_magick'
 require 'optipng'
 
-module Archivist
+module Photein
   class Image < MediaFile
     SUPPORTED_FORMATS = %w(
       .jpg
@@ -23,13 +23,13 @@ module Archivist
     MAX_RES_WEB = 2097152 # 2MP
 
     def optimize
-      return if Archivist::Config.optimize_for == :desktop
+      return if Photein::Config.optimize_for == :desktop
 
       case extname
       when '.jpg', '.heic'
         return false if image.dimensions.reduce(&:*) < MAX_RES_WEB
 
-        Archivist::Logger.info "optimizing #{path}"
+        Photein::Logger.info "optimizing #{path}"
         MiniMagick::Tool::Convert.new do |convert|
           convert << path
           convert.colorspace('sRGB')
@@ -39,12 +39,12 @@ module Archivist
           convert.resize("#{MAX_RES_WEB}@>")
           convert.sampling_factor('4:2:0')
           convert << tempfile
-        end unless Archivist::Config.dry_run
+        end unless Photein::Config.dry_run
       when '.png'
         return if !Optipng.available?
 
-        FileUtils.cp(path, tempfile, noop: Archivist::Config.dry_run)
-        Optipng.optimize(tempfile, level: 4) unless Archivist::Config.dry_run
+        FileUtils.cp(path, tempfile, noop: Photein::Config.dry_run)
+        Optipng.optimize(tempfile, level: 4) unless Photein::Config.dry_run
       end
     end
 
@@ -82,8 +82,8 @@ module Archivist
     end
 
     def non_optimizable_format?
-      return false if !Archivist::Config.optimize_for
-      return false if Archivist::Config.optimize_for == :desktop
+      return false if !Photein::Config.optimize_for
+      return false if Photein::Config.optimize_for == :desktop
       return true if extname == '.dng'
 
       return false

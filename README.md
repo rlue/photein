@@ -1,5 +1,5 @@
-🗄️ archivist
-===========
+Ph📸tein
+========
 
 Import/rename photos & videos from one directory to another.
 
@@ -21,7 +21,7 @@ What does it do?
 ----------------
 
 Suppose your digital camera creates files with names like `R0017839.JPG`.
-Archivist will...
+Photein will...
 
 * look for a timestamp in...
   * EXIF metadata
@@ -51,9 +51,9 @@ whenever you plug it in via USB.
 
 ```sh
 $ mkdir -p ~/.local/share/systemd/user
-$ curl https://raw.githubusercontent.com/rlue/archivist/master/examples/share/systemd/user/archivist-dcim.service -o ~/.local/share/systemd/user/archivist-dcim.service
+$ curl https://raw.githubusercontent.com/rlue/photein/master/examples/share/systemd/user/photein-dcim.service -o ~/.local/share/systemd/user/photein-dcim.service
 $ systemctl --user daemon-reload
-$ systemctl --user enable archivist-dcim.service
+$ systemctl --user enable photein-dcim.service
 ```
 
 > Note: The provided systemd service makes the following
@@ -66,13 +66,13 @@ $ systemctl --user enable archivist-dcim.service
 >
 > Adjust accordingly.
 
-[sample systemd service]: blob/master/examples/share/systemd/user/archivist-dcim.service
+[sample systemd service]: blob/master/examples/share/systemd/user/photein-dcim.service
 [rbenv]: https://github.com/rbenv/rbenv
 
 #### 📱 Auto-import from an Android phone
 
 Use [Syncthing][] to sync photos from your phone to a staging directory on
-your computer. Then, run archivist in a cron job to import those photos into
+your computer. Then, run photein in a cron job to import those photos into
 your library on a daily basis.
 
 [Syncthing]: https://syncthing.net/
@@ -81,22 +81,22 @@ Installation
 ------------
 
 ```sh
-$ git clone https://github.com/rlue/archivist
-$ cd archivist
-$ gem build archivist.gemspec
-$ gem install archivist-0.0.1.gem
+$ git clone https://github.com/rlue/photein
+$ cd photein
+$ gem build photein.gemspec
+$ gem install photein-0.0.1.gem
 ```
 
 Usage
 -----
 
 ```sh
-$ archivist \
+$ photein \
     --source=/media/ricoh_gr/DCIM \ # pull photos & videos from here
     --dest=/home/rlue/Pictures      # and deposit them here (in per-year subdirectories)
 ```
 
-Use `archivist --help` for a summary of all options.
+Use `photein --help` for a summary of all options.
 
 Dependencies
 ------------

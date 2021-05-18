@@ -1,8 +1,8 @@
-require File.expand_path('./lib/archivist/version', __dir__)
+require File.expand_path('./lib/photein/version', __dir__)
 
 Gem::Specification.new do |s|
-  s.name = 'archivist'
-  s.version = Archivist::VERSION
+  s.name = 'photein'
+  s.version = Photein::VERSION
   s.licenses = ['MIT']
   s.required_ruby_version = '>= 2.6.0'
   s.authors = ['Ryan Lue']
@@ -11,8 +11,8 @@ Gem::Specification.new do |s|
   s.description = <<~DESC.chomp
   DESC
   s.files = `git ls-files bin lib vendor README.md`.split
-  s.executables << 'archivist'
-  s.homepage = 'https://github.com/rlue/archivist'
+  s.executables << 'photein'
+  s.homepage = 'https://github.com/rlue/photein'
 
   s.add_dependency 'mediainfo', '~> 1.5'
   s.add_dependency 'mini_exiftool', '~> 2.10'
@@ -22,5 +22,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'streamio-ffmpeg', '~> 3.0'
   s.add_development_dependency 'pry', '~> 0.14'
   s.add_development_dependency 'rspec', '~> 3.10'
-  s.metadata = { 'source_code_uri' => 'https://github.com/rlue/archivist' }
+  s.metadata = { 'source_code_uri' => 'https://github.com/rlue/photein' }
 end

@@ -3,7 +3,7 @@
 require 'singleton'
 require 'optparse'
 
-module Archivist
+module Photein
   class Config
     include Singleton
 
@@ -30,9 +30,9 @@ module Archivist
         @params = {}
 
         parser = OptionParser.new do |opts|
-          opts.version = Archivist::VERSION
+          opts.version = Photein::VERSION
           opts.banner  = <<~BANNER
-            Usage: archivist [--version] [-h | --help] [<args>]
+            Usage: photein [--version] [-h | --help] [<args>]
           BANNER
 
           OPTIONS.each { |opt| opts.on(*opt) }

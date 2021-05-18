@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    archivist (0.0.1)
+    photein (0.0.1)
       mediainfo (~> 1.5)
       mini_exiftool (~> 2.10)
       mini_magick (~> 4.11)
@@ -63,8 +63,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  archivist!
   debouncer
+  photein!
   pry (~> 0.14)
   rb-inotify
   rspec (~> 3.10)

@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'photein'
+require 'pathname'
+
+Photein::Config.parse_opts!
+Photein::Logger.open
+
+# Setup ------------------------------------------------------------------------
+
+SRC_DIR  = Pathname(Photein::Config.source)
+DEST_DIR = Pathname(Photein::Config.dest)
+
+begin
+  raise "#{Photein::Config.source}: no such directory" unless SRC_DIR.exist?
+  raise "#{Photein::Config.dest}: no such directory" unless DEST_DIR.exist?
+  raise "#{Photein::Config.source}: no photos or videos found" if Dir.empty?(SRC_DIR)
+rescue => e
+  Photein::Logger.fatal(e.message)
+  exit 1
+end
+
+# Cleanup ----------------------------------------------------------------------
+at_exit do
+  unless Photein::Config.keep
+    Dir[SRC_DIR.join('**/')].sort
+      .drop(1)
+      .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
+  end
+
+  FileUtils.rm_rf(File.join(Dir.tmpdir, 'photein'))
+end
+
+# Core Logic -------------------------------------------------------------------
+image_formats = Photein::Image::SUPPORTED_FORMATS
+  .zip(Photein::Image::SUPPORTED_FORMATS.map(&:upcase))
+  .flatten
+
+SRC_DIR
+  .join(Photein::Config.recursive ? '**' : '')
+  .join("*{#{image_formats.join(',')}}")
+  .then { |glob| Dir[glob].sort }
+  .map(&Photein::Image.method(:new))
+  .each(&:import)
+
+# Video compression is time-consuming, so save it for last
+video_formats = Photein::Video::SUPPORTED_FORMATS
+  .zip(Photein::Video::SUPPORTED_FORMATS.map(&:upcase))
+  .flatten
+
+SRC_DIR
+  .join(Photein::Config.recursive ? '**' : '')
+  .join("*{#{video_formats.join(',')}}")
+  .then { |glob| Dir[glob].sort }
+  .map(&Photein::Video.method(:new))
+  .each(&:import)

@@ -5,7 +5,7 @@
 
 * Add HEALTHCHECK to archivistd Dockerfile
 
-* Resolve docker build requirement `COPY ./archivist-0.0.1.gem app/`
+* Resolve docker build requirement `COPY ./photein-0.0.1.gem app/`
 
 * Rename `/app` directory in Dockerfile
 
