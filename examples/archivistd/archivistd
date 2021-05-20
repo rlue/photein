@@ -87,7 +87,7 @@ Thread.new do
   sync_deletions = ->(event) do
     LOGGER.info("#{event.name} has disappeared!")
 
-    deleted_file   = Pathname(event.absolute_name).realpath
+    deleted_file   = Pathname(event.absolute_name).expand_path
 
     sister_file    = if deleted_file.to_s.start_with?(File.expand_path(ENV['HI_RES_DIR']))
                       deleted_file.sub(*ENV.values_at('HI_RES_DIR', 'LO_RES_DIR'))
