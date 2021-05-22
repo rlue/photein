@@ -6,7 +6,7 @@ All your photos under one roof.
 What does it do?
 ----------------
 
-This repo provides two related programs: `photein` and `archivistd`.
+This repo provides two related programs: `photein` and `xferase`.
 
 ### Photein
 
@@ -41,9 +41,9 @@ no matter where they come from:
 > where and how your photos should be stored on your system (like Apple Photos), 
 > Photein is not for you.
 
-### Archivistd
+### Xferase
 
-Archivistd is a background service built on top of photein.
+Xferase is a background service built on top of photein.
 It watches a directory of your choosing,
 and whenever any files are placed there,
 it automatically imports them into your photo library.
@@ -54,7 +54,7 @@ and ensures that when you delete a photo from one,
 it is automatically removed from the other.
 
 When combined with other software,
-Archivistd can be used as a self-hosted / DIY alternative
+Xferase can be used as a self-hosted / DIY alternative
 to cloud photo services like Google Photos or iCloud.
 
 Why?
@@ -83,7 +83,7 @@ I could not find any existing software product that:
 > ⚠️ **Note**
 >
 > Strictly speaking, Photein does not handle requirement #1;
-> for that, use Archivistd in combination with other software,
+> for that, use Xferase in combination with other software,
 > such as Syncthing or systemd.
 
 Installation

@@ -3,7 +3,7 @@ FROM ruby:3.0.1-alpine
 MAINTAINER Ryan Lue <hello@ryanlue.com>
 
 WORKDIR /app
-COPY archivistd /app
+COPY xferase /app
 
 ENV MEDIAINFO_XML_PARSER=nokogiri
 
@@ -21,4 +21,4 @@ RUN gem install \
     debouncer \
     rb-inotify
 
-CMD ["./archivistd"]
+CMD ["./xferase"]

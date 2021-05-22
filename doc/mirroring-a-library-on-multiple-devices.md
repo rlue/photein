@@ -7,7 +7,7 @@ TODO: Write me.
 
 ```sh
 $ docker run -d \
-    --name archivistd \
+    --name xferase \
     --user $(id -u) \  # fixes file permission issues
     -e TZ=America/Los_Angeles \
     -v /media/data/rlue/memories:/data \
@@ -15,7 +15,7 @@ $ docker run -d \
     -e STAGING_DIR=/data/_staging \
     -e HI_RES_DIR=/data/originals \
     -e LO_RES_DIR=/data/web \
-    rlue/archivistd
+    rlue/xferase
 ```
 
 #### via Docker Compose
@@ -26,8 +26,8 @@ $ docker run -d \
 version: '3'
 
 services:
-  archivistd:
-    image: rlue/archivistd:latest
+  xferase:
+    image: rlue/xferase:latest
     user: 1000
     volumes:
       /media/data/rlue/memories:/data
