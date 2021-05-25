@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photein (0.0.1)
+    photein (0.0.2)
       mediainfo (~> 1.5)
       mini_exiftool (~> 2.10)
       mini_magick (~> 4.11)
@@ -22,11 +22,11 @@ GEM
       ruby-version (>= 0.4.0)
     mediainfo (1.5.0)
     method_source (1.0.0)
-    mini_exiftool (2.10.0)
+    mini_exiftool (2.10.1)
     mini_magick (4.11.0)
     mini_portile2 (2.5.1)
     multi_json (1.15.0)
-    nokogiri (1.11.3)
+    nokogiri (1.11.5)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
     optipng (0.2.1)
