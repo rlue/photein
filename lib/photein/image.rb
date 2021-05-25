@@ -41,8 +41,6 @@ module Photein
           convert << tempfile
         end unless Photein::Config.dry_run
       when '.png'
-        return if !Optipng.available?
-
         FileUtils.cp(path, tempfile, noop: Photein::Config.dry_run)
         Photein::Logger.info "optimizing #{path}"
         Optipng.optimize(tempfile, level: 4) unless Photein::Config.dry_run
