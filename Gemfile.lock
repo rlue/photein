@@ -2,11 +2,13 @@ PATH
   remote: .
   specs:
     photein (0.0.2)
+      debouncer (~> 0.2)
       mediainfo (~> 1.5)
       mini_exiftool (~> 2.10)
       mini_magick (~> 4.11)
       nokogiri (~> 1.11)
       optipng (~> 0.2)
+      rb-inotify (~> 0.10)
       streamio-ffmpeg (~> 3.0)
 
 GEM

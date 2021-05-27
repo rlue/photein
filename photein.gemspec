@@ -11,14 +11,16 @@ Gem::Specification.new do |s|
   s.description = <<~DESC.chomp
   DESC
   s.files = `git ls-files bin lib vendor README.md`.split
-  s.executables << 'photein'
+  s.executables += ['photein', 'xferase']
   s.homepage = 'https://github.com/rlue/photein'
 
+  s.add_dependency 'debouncer', '~> 0.2'
   s.add_dependency 'mediainfo', '~> 1.5'
   s.add_dependency 'mini_exiftool', '~> 2.10'
   s.add_dependency 'mini_magick', '~> 4.11'
-  s.add_dependency 'optipng', '~> 0.2'
   s.add_dependency 'nokogiri', '~> 1.11'
+  s.add_dependency 'optipng', '~> 0.2'
+  s.add_dependency 'rb-inotify', '~> 0.10'
   s.add_dependency 'streamio-ffmpeg', '~> 3.0'
   s.add_development_dependency 'pry', '~> 0.14'
   s.add_development_dependency 'rspec', '~> 3.10'
