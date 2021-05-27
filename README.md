@@ -1,16 +1,30 @@
-Ph📸tein
-========
+Ph📸tein / 🔀ferase
+===================
 
 All your photos under one roof.
 
-What does it do?
+What do they do?
 ----------------
 
-This repo provides two related programs: `photein` and `xferase`.
+`photein` is a CLI utility for batch-importing
+your personal photos & videos into a central library.
+
+`xferase` is an always-on background service that uses `photein`
+to continuously import new photos & videos as they come in.
+
+When combined with other software,
+they can be used as a kind of self-hosted / DIY alternative
+to cloud photo services like Google Photos or iCloud.
+
+> ⚠️ **Note**
+>
+> Unlike true cloud photo services,
+> this approach works by keeping a full copy of your photo library
+> in local storage on each device you sync to.
 
 ### Photein
 
-Photein is a CLI utility for managing your photos **at the filesystem level**.
+Photein manages your photos **at the filesystem level**.
 It won’t let you browse or edit your photos,
 but it will give them a uniform folder structure and filenames,
 no matter where they come from:
@@ -35,6 +49,9 @@ no matter where they come from:
     └── VID_20210212_081939.mp4             └── 2021-04-28_000008.jpg
 ```
 
+Photein generates these folders & filenames
+based on metadata timestamps, filename timestamps, or file creation times.
+
 > ⚠️ **Note**
 >
 > If you use a photo management app that decides
@@ -43,8 +60,7 @@ no matter where they come from:
 
 ### Xferase
 
-Xferase is a background service built on top of photein.
-It watches a directory of your choosing,
+Xferase watches a directory of your choosing (its “inbox”),
 and whenever any files are placed there,
 it automatically imports them into your photo library.
 
@@ -53,9 +69,13 @@ It creates and manages two parallel copies of your library
 and ensures that when you delete a photo from one,
 it is automatically removed from the other.
 
-When combined with other software,
-Xferase can be used as a self-hosted / DIY alternative
-to cloud photo services like Google Photos or iCloud.
+With the help of [Syncthing][] and systemd,
+you can automatically pull new photos from your camera or Android phone
+into Xferase’s inbox.
+Syncthing can also push your complete, web-optimized photo library
+back to your phone (or, say, push your hi-res library out to another machine).
+
+[Syncthing]: https://syncthing.net/
 
 Why?
 ----
@@ -70,7 +90,8 @@ I could not find any existing software product that:
 
    (I want to be able to access my photos from the file manager,
    find them in an “Open...” dialog,
-   or sync them to other devices with tools like Dropbox or Syncthing.)
+   or sync them to other devices with generic tools
+   like rsync, Dropbox, or Syncthing.)
 
 3. comes with **no recurring subscription fee**—or better yet, is FOSS
 
@@ -79,12 +100,6 @@ I could not find any existing software product that:
    then does it really?)
 
 4. works with Linux
-
-> ⚠️ **Note**
->
-> Strictly speaking, Photein does not handle requirement #1;
-> for that, use Xferase in combination with other software,
-> such as Syncthing or systemd.
 
 Installation
 ------------
@@ -146,8 +161,7 @@ Contributions welcome.
 > it defines expectations against the effects of `system('photein <args>')`.
 >
 > Because `Kernel#system` runs the given command in a subprocess, 
-> it prints to a different stdout than
-> native Ruby code in a normal RSpec example.
+> it prints to a different stdout than `rspec` itself.
 > This makes test failures cumbersome to debug,
 > because `puts` statements never appear in the test output,
 > and `binding.pry` will cause the test to appear to hang
