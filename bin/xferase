@@ -138,10 +138,10 @@ Thread.new do
 
     deleted_file   = Pathname(event.absolute_name).expand_path
 
-    sister_file    = if deleted_file.to_s.start_with?(File.expand_path(params['LIB_ORIG']))
-                      deleted_file.sub(*params.values_at('LIB_ORIG', 'LIB_WEB'))
+    sister_file    = if deleted_file.to_s.start_with?(File.expand_path(params[:'lib-orig']))
+                      deleted_file.sub(*params.values_at(:'lib-orig', :'lib-web'))
                     else
-                      deleted_file.sub(*params.values_at('LIB_WEB', 'LIB_ORIG'))
+                      deleted_file.sub(*params.values_at(:'lib-web', :'lib-orig'))
                     end
 
     sister_formats = FORMAT_GROUPS.find { |group| group.include?(deleted_file.extname) }
