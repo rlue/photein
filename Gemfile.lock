@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photein (0.0.2)
+    photein (0.0.4)
       debouncer (~> 0.2)
       mediainfo (~> 1.5)
       mini_exiftool (~> 2.10)
@@ -19,7 +19,7 @@ GEM
       pipe-run (>= 0.2.1)
     debouncer (0.2.2)
     diff-lcs (1.4.4)
-    ffi (1.13.1)
+    ffi (1.15.1)
     hash-utils (2.2.0)
       ruby-version (>= 0.4.0)
     mediainfo (1.5.0)
@@ -28,7 +28,7 @@ GEM
     mini_magick (4.11.0)
     mini_portile2 (2.5.1)
     multi_json (1.15.0)
-    nokogiri (1.11.5)
+    nokogiri (1.11.6)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
     optipng (0.2.1)
@@ -65,10 +65,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  debouncer
   photein!
   pry (~> 0.14)
-  rb-inotify
   rspec (~> 3.10)
 
 BUNDLED WITH

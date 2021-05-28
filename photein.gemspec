@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.description = <<~DESC.chomp
   DESC
   s.files = `git ls-files bin lib vendor README.md`.split
-  s.executables += ['photein', 'xferase']
+  s.executables += ['photein']
   s.homepage = 'https://github.com/rlue/photein'
 
   s.add_dependency 'debouncer', '~> 0.2'

@@ -1,28 +1,10 @@
-Ph📸tein / 🔀ferase
-===================
+Ph📸tein
+========
 
-All your photos under one roof.
+A no-nonsense way to organize your personal photo library.
 
-What do they do?
+What does it do?
 ----------------
-
-`photein` is a CLI utility for batch-importing
-your personal photos & videos into a central library.
-
-`xferase` is an always-on background service that uses `photein`
-to continuously import new photos & videos as they come in.
-
-When combined with other software,
-they can be used as a kind of self-hosted / DIY alternative
-to cloud photo services like Google Photos or iCloud.
-
-> ⚠️ **Note**
->
-> Unlike true cloud photo services,
-> this approach works by keeping a full copy of your photo library
-> in local storage on each device you sync to.
-
-### Photein
 
 Photein manages your photos **at the filesystem level**.
 It won’t let you browse or edit your photos,
@@ -55,51 +37,29 @@ based on metadata timestamps, filename timestamps, or file creation times.
 > ⚠️ **Note**
 >
 > If you use a photo management app that decides
-> where and how your photos should be stored on your system (like Apple Photos), 
-> Photein is not for you.
+> where and how your photos should be stored on disk
+> (👀 looking at you, Apple Photos), Photein is not for you.
 
-### Xferase
+It can also optimize photos and videos for reduced file size.
 
-Xferase watches a directory of your choosing (its “inbox”),
-and whenever any files are placed there,
-it automatically imports them into your photo library.
+What _doesn’t_ it do?
+---------------------
 
-It creates and manages two parallel copies of your library
-(one original/hi-res, one optimized for web)
-and ensures that when you delete a photo from one,
-it is automatically removed from the other.
+On its own, Photein is **not** an alternative
+to cloud photo services like Google Photos or iCloud—but
+in combination with other software, it can be.
 
-With the help of [Syncthing][] and systemd,
-you can automatically pull new photos from your camera or Android phone
-into Xferase’s inbox.
-Syncthing can also push your complete, web-optimized photo library
-back to your phone (or, say, push your hi-res library out to another machine).
+If you want to:
 
-[Syncthing]: https://syncthing.net/
+* import photos from your phone as soon as you take them
+* import photos from a digital camera / SD card as soon as you plug it in
+* mirror a low-res copy of your entire photo library to your Android phone
 
-Why?
-----
+check out Photein’s sister utility [Xferase][],
+or try the [automation guides][] below.
 
-I could not find any existing software product that:
-
-1. imports photos from many sources\* with **no mouse or keyboard interaction**
-
-   \*_e.g.,_ 📱 cell phone / 📷 digital camera / 💬 chat app download
-
-2. enforces a clean, consistent, **user-visible directory & filename scheme**
-
-   (I want to be able to access my photos from the file manager,
-   find them in an “Open...” dialog,
-   or sync them to other devices with generic tools
-   like rsync, Dropbox, or Syncthing.)
-
-3. comes with **no recurring subscription fee**—or better yet, is FOSS
-
-   (My digital photo/video library belongs to me,
-   but if I don’t control the pipeline for viewing/managing it,
-   then does it really?)
-
-4. works with Linux
+[Xferase]: https://github.com/rlue/xferase
+[automation guides]: #automation-guides
 
 Installation
 ------------
@@ -110,7 +70,7 @@ $ gem install photein
 
 ### Dependencies
 
-* Ruby 2.7+
+* Ruby 2.6+
 * [ExifTool][]
 * [MediaInfo][]
 * ImageMagick (for `--optimize-for=web` option)
@@ -122,8 +82,6 @@ $ gem install photein
 
 Usage
 -----
-
-### Simple import
 
 ```sh
 $ photein \
@@ -145,9 +103,17 @@ Use `photein --help` for a summary of all options.
 
 ### Automation guides
 
-* [📷➡️🖥️ Set up auto-import from a digital camera](doc/auto-import-digital-camera.md)
-* [📱➡️🖥️ Set up auto-import from an Android phone](doc/auto-import-android-phone.md)
-* [📱🔄🖥️ Mirror your library across multiple devices](doc/mirroring-a-library-on-multiple-devices.md)
+Using Photein + systemd, you can:
+
+* [📷➡️🖥️ Set up auto-import from a digital camera](guides/auto-import-digital-camera.md)
+
+But for more complex tasks, like:
+
+* 📱➡️🖥️ Setting up auto-import from an Android phone
+* 📱🔄🖥️ Mirroring your library across multiple devices
+
+check out the documentation for [Xferase][],
+an always-on background service based on Photein.
 
 Development
 -----------

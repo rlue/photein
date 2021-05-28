@@ -3,10 +3,6 @@
 
   https://support.google.com/youtube/answer/1722171
 
-* Add HEALTHCHECK to xferase Dockerfile
-
-* Rename `/app` directory in Dockerfile
-
 * CONSIDER: Is it a bad idea to clean up all the empty directories in the
   source dir at exit?
 
