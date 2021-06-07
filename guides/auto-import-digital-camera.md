@@ -1,5 +1,5 @@
 📷➡️🖥️ Auto-Import: Digital Camera
-=================================
+================================
 
 Linux users can set up a systemd service to import photos automatically
 any time they insert their camera’s SD card or plug it in via USB—but

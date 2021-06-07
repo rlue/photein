@@ -39,7 +39,7 @@ based on metadata timestamps, filename timestamps, or file creation times.
 >
 > If you use a photo management app that decides
 > where and how your photos should be stored on disk
-> (👀 looking at you, Apple Photos), Photein is not for you.
+> (looking at you, Apple Photos 👀), Photein is not for you.
 
 It can also optimize photos and videos for reduced file size.
 
