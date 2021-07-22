@@ -20,6 +20,7 @@ module Photein
     end
 
     def import
+      return if corrupted?
       return if Photein::Config.interactive && denied_by_user?
       return if Photein::Config.safe && in_use?
       return if Photein::Config.optimize_for && non_optimizable_format?
@@ -43,6 +44,12 @@ module Photein
     end
 
     private
+
+    def corrupted?(result = false)
+      return result.tap do |r|
+        Photein::Logger.error("#{path.basename}: cannot import corrupted file") if r
+      end
+    end
 
     def denied_by_user?
       $stdout.printf "Import #{path}? [y/N]"

@@ -53,6 +53,10 @@ module Photein
 
     private
 
+    def corrupted?
+      super(video.bitrate.nil?)
+    end
+
     def video
       @video ||= FFMPEG::Movie.new(path.to_s)
     end

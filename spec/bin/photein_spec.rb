@@ -452,5 +452,19 @@ RSpec.describe 'photein' do
         end
       end
     end
+
+    context 'with corrupted video files' do
+      let(:source_files) { Dir["#{data_dir}/{corrupted,basic}/*.mp4"] }
+
+      it 'skips and continues processing' do
+        system("#{cmd} >/dev/null")
+
+        expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+          #{dest_dir}
+          └── 2021
+              └── 2021-03-12_104032.mp4
+        TREE
+      end
+    end
   end
 end

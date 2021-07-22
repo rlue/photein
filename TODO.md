@@ -8,3 +8,7 @@
 
 * Dependency checks: Wrap calls to ffmpeg / imagemagick / optipng
   (and exiftool / mediainfo?) in begin/rescue/end statements
+
+* `Photein::Video#corrupted?`:
+  Is `video.bitrate.nil?` a sufficient/complete corruption check?
+  (Do we need to add a corresponding check for image files?)
