@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photein (0.0.4)
+    photein (0.0.6)
       mediainfo (~> 1.5)
       mini_exiftool (~> 2.10)
       mini_magick (~> 4.11)
