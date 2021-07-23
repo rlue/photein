@@ -59,11 +59,17 @@ module Photein
 
     def video
       @video ||= FFMPEG::Movie.new(path.to_s)
+    rescue Errno::ENOENT
+      Photein::Logger.error('ffmpeg is required to manipulate video files')
+      raise
     end
 
     def metadata_stamp
       # video timestamps are typically UTC
       MediaInfo.from(path.to_s).general.encoded_date&.getlocal
+    rescue MediaInfo::EnvironmentError
+      Photein::Logger.error('mediainfo is required to read timestamp metadata')
+      raise
     end
 
     # NOTE: This may be largely unnecessary:

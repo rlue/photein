@@ -6,9 +6,6 @@
 * CONSIDER: Is it a bad idea to clean up all the empty directories in the
   source dir at exit?
 
-* Dependency checks: Wrap calls to ffmpeg / imagemagick / optipng
-  (and exiftool / mediainfo?) in begin/rescue/end statements
-
 * `Photein::Video#corrupted?`:
   Is `video.bitrate.nil?` a sufficient/complete corruption check?
   (Do we need to add a corresponding check for image files?)
