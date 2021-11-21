@@ -120,7 +120,7 @@ module Photein
       when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
         if Dir[collision_glob].first != collision_glob.sub('*', 'a') # don't try if it's already a lone, correctly-countered file
           Photein::Logger.info('conflicting timestamp found; adding counter to existing file')
-          FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'))
+          FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'), noop: Photein::Config.dry_run)
         end
       else # TODO: if multiple files found, rectify them?
       end
