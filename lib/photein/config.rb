@@ -25,10 +25,14 @@ module Photein
       .map { |option| option[/\w[a-z\-]+/] }
       .map(&:to_sym)
 
-    class << self
-      def parse_opts!
-        @params = {}
+    @params = {}
 
+    class << self
+      def set(**params)
+        @params.replace(params).freeze
+      end
+
+      def parse_opts!
         parser = OptionParser.new do |opts|
           opts.version = Photein::VERSION
           opts.banner  = <<~BANNER
