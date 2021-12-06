@@ -29,7 +29,7 @@ module Photein
 
     class << self
       def set(**params)
-        @params.replace(params).freeze
+        @params.replace(params)
       end
 
       def parse_opts!
