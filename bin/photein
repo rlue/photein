@@ -33,25 +33,17 @@ at_exit do
 end
 
 # Core Logic -------------------------------------------------------------------
-image_formats = Photein::Image::SUPPORTED_FORMATS
-  .zip(Photein::Image::SUPPORTED_FORMATS.map(&:upcase))
-  .flatten
-
+# Video compression is time-consuming, so save it for last
 SRC_DIR
   .join(Photein::Config.recursive ? '**' : '')
-  .join("*{#{image_formats.join(',')}}")
-  .then { |glob| Dir[glob].sort }
+  .join("*{#{Photein::Image::SUPPORTED_FORMATS.join(',')}}")
+  .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
   .map(&Photein::Image.method(:new))
   .each(&:import)
 
-# Video compression is time-consuming, so save it for last
-video_formats = Photein::Video::SUPPORTED_FORMATS
-  .zip(Photein::Video::SUPPORTED_FORMATS.map(&:upcase))
-  .flatten
-
 SRC_DIR
   .join(Photein::Config.recursive ? '**' : '')
-  .join("*{#{video_formats.join(',')}}")
-  .then { |glob| Dir[glob].sort }
+  .join("*{#{Photein::Video::SUPPORTED_FORMATS.join(',')}}")
+  .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
   .map(&Photein::Video.method(:new))
   .each(&:import)
