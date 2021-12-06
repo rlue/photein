@@ -33,17 +33,4 @@ at_exit do
 end
 
 # Core Logic -------------------------------------------------------------------
-# Video compression is time-consuming, so save it for last
-SRC_DIR
-  .join(Photein::Config.recursive ? '**' : '')
-  .join("*{#{Photein::Image::SUPPORTED_FORMATS.join(',')}}")
-  .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
-  .map(&Photein::Image.method(:new))
-  .each(&:import)
-
-SRC_DIR
-  .join(Photein::Config.recursive ? '**' : '')
-  .join("*{#{Photein::Video::SUPPORTED_FORMATS.join(',')}}")
-  .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
-  .map(&Photein::Video.method(:new))
-  .each(&:import)
+Photein.run
