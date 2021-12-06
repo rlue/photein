@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photein (0.0.6)
+    photein (0.0.8)
       mediainfo (~> 1.5)
       mini_exiftool (~> 2.10)
       mini_magick (~> 4.11)
@@ -22,10 +22,10 @@ GEM
     method_source (1.0.0)
     mini_exiftool (2.10.2)
     mini_magick (4.11.0)
-    mini_portile2 (2.5.3)
+    mini_portile2 (2.6.1)
     multi_json (1.15.0)
-    nokogiri (1.11.7)
-      mini_portile2 (~> 2.5.0)
+    nokogiri (1.12.5)
+      mini_portile2 (~> 2.6.1)
       racc (~> 1.4)
     optipng (0.2.1)
       command-builder (>= 0.2.0)
@@ -37,7 +37,7 @@ GEM
     pry-remote (0.1.8)
       pry (~> 0.9)
       slop (~> 3.0)
-    racc (1.5.2)
+    racc (1.6.0)
     rspec (3.10.0)
       rspec-core (~> 3.10.0)
       rspec-expectations (~> 3.10.0)
