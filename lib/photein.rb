@@ -10,20 +10,14 @@ require 'photein/video'
 module Photein
   class << self
     def run
-      # Video compression is time-consuming, so save it for last
-      Pathname(Photein::Config.source)
-        .join(Photein::Config.recursive ? '**' : '')
-        .join("*{#{Photein::Image::SUPPORTED_FORMATS.join(',')}}")
-        .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
-        .map(&Photein::Image.method(:new))
-        .each(&:import)
-
-      Pathname(Photein::Config.source)
-        .join(Photein::Config.recursive ? '**' : '')
-        .join("*{#{Photein::Video::SUPPORTED_FORMATS.join(',')}}")
-        .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
-        .map(&Photein::Video.method(:new))
-        .each(&:import)
+      [Photein::Image, Photein::Video].each do |media_type|
+        Pathname(Photein::Config.source)
+          .join(Photein::Config.recursive ? '**' : '')
+          .join("*{#{media_type::SUPPORTED_FORMATS.join(',')}}")
+          .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
+          .map(&media_type.method(:new))
+          .each(&:import)
+      end
     end
   end
 end
