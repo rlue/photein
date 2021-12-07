@@ -5,7 +5,7 @@ require 'photein'
 require 'pathname'
 
 Photein::Config.parse_opts!
-Photein::Logger.open
+Photein.logger.open
 
 # Setup ------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ begin
   raise "#{Photein::Config.dest}: no such directory" unless DEST_DIR.exist?
   raise "#{Photein::Config.source}: no photos or videos found" if Dir.empty?(SRC_DIR)
 rescue => e
-  Photein::Logger.fatal(e.message)
+  Photein.logger.fatal(e.message)
   exit 1
 end
 

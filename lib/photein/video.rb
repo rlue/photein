@@ -36,7 +36,7 @@ module Photein
     def optimize
       return if video.bitrate < BITRATE_THRESHOLD[Photein::Config.optimize_for]
 
-      Photein::Logger.info("transcoding #{tempfile}")
+      Photein.logger.info("transcoding #{tempfile}")
       return if Photein::Config.dry_run
 
       video.transcode(
@@ -60,7 +60,7 @@ module Photein
     def video
       @video ||= FFMPEG::Movie.new(path.to_s)
     rescue Errno::ENOENT
-      Photein::Logger.error('ffmpeg is required to manipulate video files')
+      Photein.logger.error('ffmpeg is required to manipulate video files')
       raise
     end
 
@@ -68,7 +68,7 @@ module Photein
       # video timestamps are typically UTC
       MediaInfo.from(path.to_s).general.encoded_date&.getlocal
     rescue MediaInfo::EnvironmentError
-      Photein::Logger.error('mediainfo is required to read timestamp metadata')
+      Photein.logger.error('mediainfo is required to read timestamp metadata')
       raise
     end
 

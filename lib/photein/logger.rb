@@ -4,6 +4,14 @@ require 'logger'
 require 'singleton'
 
 module Photein
+  class << self
+    attr_writer :logger
+
+    def logger
+      @logger ||= Photein::Logger
+    end
+  end
+
   class Logger
     include Singleton
 

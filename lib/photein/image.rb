@@ -29,7 +29,7 @@ module Photein
       when '.jpg', '.heic'
         return false if image.dimensions.reduce(&:*) < MAX_RES_WEB
 
-        Photein::Logger.info "optimizing #{path}"
+        Photein.logger.info "optimizing #{path}"
         MiniMagick::Tool::Convert.new do |convert|
           convert << path
           convert.colorspace('sRGB')
@@ -42,11 +42,11 @@ module Photein
         end unless Photein::Config.dry_run
       when '.png'
         FileUtils.cp(path, tempfile, noop: Photein::Config.dry_run)
-        Photein::Logger.info "optimizing #{path}"
+        Photein.logger.info "optimizing #{path}"
         begin
           Optipng.optimize(tempfile, level: 4) unless Photein::Config.dry_run
         rescue Errno::ENOENT
-          Photein::Logger.error('optipng is required to compress PNG images')
+          Photein.logger.error('optipng is required to compress PNG images')
           raise
         end
       end
@@ -57,7 +57,7 @@ module Photein
     def image
       @image ||= MiniMagick::Image.open(path)
     rescue MiniMagick::Invalid => e
-      Photein::Logger.error(<<~MSG) if e.message.match?(/You must have ImageMagick/)
+      Photein.logger.error(<<~MSG) if e.message.match?(/You must have ImageMagick/)
         ImageMagick is required to manipulate image files
       MSG
       raise
@@ -66,7 +66,7 @@ module Photein
     def metadata_stamp
       MiniExiftool.new(path.to_s).date_time_original
     rescue MiniExiftool::Error => e
-      Photein::Logger.error(<<~MSG) if e.message.match?(/exiftool: not found/)
+      Photein.logger.error(<<~MSG) if e.message.match?(/exiftool: not found/)
         exiftool is required to read timestamp metadata
       MSG
       raise

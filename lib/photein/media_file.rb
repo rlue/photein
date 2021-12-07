@@ -29,7 +29,7 @@ module Photein
 
       optimize if Photein::Config.optimize_for
 
-      Photein::Logger.info(<<~MSG.chomp)
+      Photein.logger.info(<<~MSG.chomp)
         #{Photein::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
       MSG
 
@@ -47,7 +47,7 @@ module Photein
 
     def corrupted?(result = false)
       return result.tap do |r|
-        Photein::Logger.error("#{path.basename}: cannot import corrupted file") if r
+        Photein.logger.error("#{path.basename}: cannot import corrupted file") if r
       end
     end
 
@@ -61,7 +61,7 @@ module Photein
 
       if status.success? # Do open files ALWAYS return exit status 0? (I think so.)
         cmd, pid = out.lines[1]&.split&.first(2)
-        Photein::Logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
+        Photein.logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
         return true
       else
         return false
@@ -119,7 +119,7 @@ module Photein
       when 0 # if no files found, no biggie
       when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
         if Dir[collision_glob].first != collision_glob.sub('*', 'a') # don't try if it's already a lone, correctly-countered file
-          Photein::Logger.info('conflicting timestamp found; adding counter to existing file')
+          Photein.logger.info('conflicting timestamp found; adding counter to existing file')
           FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'), noop: Photein::Config.dry_run)
         end
       else # TODO: if multiple files found, rectify them?
