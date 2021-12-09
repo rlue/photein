@@ -9,13 +9,9 @@ Photein.logger.open
 
 # Setup ------------------------------------------------------------------------
 
-SRC_DIR  = Pathname(Photein::Config.source)
-DEST_DIR = Pathname(Photein::Config.dest)
-
 begin
-  raise "#{Photein::Config.source}: no such directory" unless SRC_DIR.exist?
-  raise "#{Photein::Config.dest}: no such directory" unless DEST_DIR.exist?
-  raise "#{Photein::Config.source}: no photos or videos found" if Dir.empty?(SRC_DIR)
+  raise "#{Photein::Config.source}: no such directory" unless Photein::Config.source.exist?
+  raise "#{Photein::Config.source}: no photos or videos found" if Dir.empty?(Photein::Config.source)
 rescue => e
   Photein.logger.fatal(e.message)
   exit 1
@@ -24,7 +20,7 @@ end
 # Cleanup ----------------------------------------------------------------------
 at_exit do
   unless Photein::Config.keep
-    Dir[SRC_DIR.join('**/')].sort
+    Dir[Photein::Config.source.join('**/')].sort
       .drop(1)
       .reverse_each { |d| Dir.rmdir(d) if Dir.empty?(d) }
   end

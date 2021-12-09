@@ -22,8 +22,8 @@ module Photein
     }.freeze
     MAX_RES_WEB = 2097152 # 2MP
 
-    def optimize
-      return if Photein::Config.optimize_for == :desktop
+    def optimize(tempfile:, lib_type:)
+      return unless lib_type == :web
 
       case extname
       when '.jpg', '.heic'
@@ -95,10 +95,8 @@ module Photein
       end
     end
 
-    def non_optimizable_format?
-      return false if !Photein::Config.optimize_for
-      return false if Photein::Config.optimize_for == :desktop
-      return true if extname == '.dng'
+    def non_optimizable_format?(lib_type)
+      return true if lib_type == :web && extname == '.dng'
 
       return false
     end

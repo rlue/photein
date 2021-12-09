@@ -33,8 +33,9 @@ module Photein
       web:     '35',
     }.freeze
 
-    def optimize
-      return if video.bitrate < BITRATE_THRESHOLD[Photein::Config.optimize_for]
+    def optimize(tempfile:, lib_type:)
+      return if lib_type == :master
+      return if video.bitrate < BITRATE_THRESHOLD[lib_type]
 
       Photein.logger.info("transcoding #{tempfile}")
       return if Photein::Config.dry_run
@@ -45,7 +46,7 @@ module Photein
           '-map_metadata', '0', # https://video.stackexchange.com/a/26076
           '-movflags',     'use_metadata_tags',
           '-c:v',          'libx264',
-          '-crf',          TARGET_CRF[Photein::Config.optimize_for],
+          '-crf',          TARGET_CRF[lib_type],
         ],
         &method(:display_progress_bar)
       )

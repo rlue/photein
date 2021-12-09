@@ -23,22 +23,38 @@ module Photein
       return if corrupted?
       return if Photein::Config.interactive && denied_by_user?
       return if Photein::Config.safe && in_use?
-      return if Photein::Config.optimize_for && non_optimizable_format?
 
-      FileUtils.mkdir_p(parent_dir, noop: Photein::Config.dry_run)
+      Photein::Config.destinations.map do |lib_type, lib_path|
+        next if non_optimizable_format?(lib_type)
 
-      optimize if Photein::Config.optimize_for
+        Thread.new do
+          dest_basename = timestamp.strftime(DATE_FORMAT)
+          dest_extname  = self.class::OPTIMIZATION_FORMAT_MAP.dig(lib_type, extname) || extname
+          dest_path     = lib_path
+                            .join(timestamp.strftime('%Y'))
+                            .join("#{dest_basename}#{dest_extname}")
+                            .then(&method(:resolve_name_collision))
+          tempfile      = Pathname(Dir.tmpdir)
+                            .join('photein').join(lib_type.to_s)
+                            .tap(&FileUtils.method(:mkdir_p))
+                            .join(dest_path.basename)
 
-      Photein.logger.info(<<~MSG.chomp)
-        #{Photein::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
-      MSG
+          optimize(tempfile: tempfile, lib_type: lib_type)
 
-      if File.exist?(tempfile)
-        FileUtils.mv(tempfile, dest_path, noop: Photein::Config.dry_run)
-      else
-        FileUtils.cp(path, dest_path, noop: Photein::Config.dry_run)
-        FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
-      end
+          Photein.logger.info(<<~MSG.chomp)
+            #{Photein::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
+          MSG
+
+          FileUtils.mkdir_p(dest_path.dirname, noop: Photein::Config.dry_run)
+
+          if File.exist?(tempfile)
+            FileUtils.mv(tempfile, dest_path, noop: Photein::Config.dry_run)
+          else
+            FileUtils.cp(path, dest_path, noop: Photein::Config.dry_run)
+            FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
+          end
+        end
+      end.each(&:join)
 
       FileUtils.rm(path, noop: Photein::Config.dry_run || Photein::Config.keep)
     end
@@ -68,27 +84,8 @@ module Photein
       end
     end
 
-    def non_optimizable_format? # may be overridden by subclasses
+    def non_optimizable_format?(lib_type = :master) # may be overridden by subclasses
       return false
-    end
-
-    def parent_dir
-      Pathname(Photein::Config.dest).join(timestamp.strftime('%Y'))
-    end
-
-    def tempfile
-      Pathname(Dir.tmpdir).join('photein')
-        .tap(&FileUtils.method(:mkdir_p))
-        .join(dest_path.basename)
-    end
-
-    def dest_path
-      @dest_path ||= begin
-                       base_path = parent_dir.join("#{timestamp.strftime(DATE_FORMAT)}#{dest_extname}")
-                       counter   = resolve_name_collision(base_path.sub_ext("*#{dest_extname}"))
-
-                       base_path.sub_ext("#{counter}#{dest_extname}")
-                     end
     end
 
     def timestamp
@@ -105,16 +102,15 @@ module Photein
       end
     end
 
-    def dest_extname
-      self.class::OPTIMIZATION_FORMAT_MAP
-        .dig(Photein::Config.optimize_for, extname) || extname
-    end
-
     def extname
       @extname ||= NORMAL_EXTNAME_MAP[path.extname.downcase] || path.extname.downcase
     end
 
-    def resolve_name_collision(collision_glob)
+    def resolve_name_collision(filename)
+      raise ArgumentError, 'Invalid filename' if filename.to_s.include?('*')
+
+      collision_glob = Pathname(filename).sub_ext("*#{filename.extname}")
+
       case Dir[collision_glob].length
       when 0 # if no files found, no biggie
       when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
@@ -125,9 +121,10 @@ module Photein
       else # TODO: if multiple files found, rectify them?
       end
 
-      # return the next usable counter
+      # return the next usable filename
       Dir[collision_glob].max&.slice(/.(?=#{Regexp.escape(collision_glob.extname)})/)&.next
         .tap { |counter| raise 'Unresolved timestamp conflict' unless [*Array('a'..'z'), nil].include?(counter) }
+        .then { |counter| filename.sub_ext("#{counter}#{filename.extname}") }
     end
   end
 end

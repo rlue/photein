@@ -8,15 +8,16 @@ module Photein
     include Singleton
 
     OPTIONS = [
-      ['-v',             '--verbose',                              'print verbose output'],
-      ['-s SOURCE',      '--source=SOURCE',                        'specify the source directory'],
-      ['-d DESTINATION', '--dest=DESTINATION',                     'specify the destination directory'],
-      ['-r',             '--recursive',                            'ingest source files recursively'],
-      ['-k',             '--keep',                                 'do not delete source files'],
-      ['-i',             '--interactive',                          'ask whether to import each file found'],
-      ['-n',             '--dry-run',                              'perform a "no-op" trial run'],
-      [                  '--safe',                                 'skip files in use by other processes'],
-      [                  '--optimize-for=TARGET', %i[desktop web], 'compress images/video before importing']
+      ['-v',             '--verbose',                 'print verbose output'],
+      ['-s SOURCE',      '--source=SOURCE',           'path to the source directory'],
+      ['-m MASTER',      '--library-master=MASTER',   'path to a destination directory (master)'],
+      ['-d DESKTOP',     '--library-desktop=DESKTOP', 'path to a destination directory (desktop-optimized)'],
+      ['-w WEB',         '--library-web=WEB',         'path to a destination directory (web-optimized)'],
+      ['-r',             '--recursive',               'ingest source files recursively'],
+      ['-k',             '--keep',                    'do not delete source files'],
+      ['-i',             '--interactive',             'ask whether to import each file found'],
+      ['-n',             '--dry-run',                 'perform a "no-op" trial run'],
+      [                  '--safe',                    'skip files in use by other processes'],
     ].freeze
 
     OPTION_NAMES = OPTIONS
@@ -46,7 +47,8 @@ module Photein
         @params.freeze
 
         raise "no source directory given" if !@params.key?(:source)
-        raise "no destination directory given" if !@params.key?(:dest)
+        (%i[library-master library-desktop library-web] & @params.keys)
+          .then { |dest_dirs| raise "no destination directory given" if dest_dirs.empty? }
       rescue => e
         warn("#{parser.program_name}: #{e.message}")
         warn(parser.help) if e.is_a?(OptionParser::ParseError)
@@ -64,6 +66,18 @@ module Photein
 
       def respond_to_missing?(m, *args)
         @params.key?(m.to_s.tr('_', '-').to_sym) || super
+      end
+
+      def source
+        @source ||= Pathname(@params[:source])
+      end
+
+      def destinations
+        @destinations ||= {
+          master:  Pathname(@params[:'library-master']),
+          desktop: Pathname(@params[:'library-desktop']),
+          web:     Pathname(@params[:'library-web'])
+        }.compact
       end
     end
   end
