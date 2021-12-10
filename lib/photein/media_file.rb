@@ -126,5 +126,16 @@ module Photein
         .tap { |counter| raise 'Unresolved timestamp conflict' unless [*Array('a'..'z'), nil].include?(counter) }
         .then { |counter| filename.sub_ext("#{counter}#{filename.extname}") }
     end
+
+    class << self
+      def for(file)
+        file = Pathname(file)
+        raise Errno::ENOENT, "#{file}" unless file.exist?
+
+        [Image, Video].find { |type| type::SUPPORTED_FORMATS.include?(file.extname) }
+          .tap { |type| raise ArgumentError, "#{file}: Invalid media file" if type.nil? }
+          .then { |type| type.new(file) }
+      end
+    end
   end
 end
