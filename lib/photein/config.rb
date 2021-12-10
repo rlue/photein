@@ -74,10 +74,10 @@ module Photein
 
       def destinations
         @destinations ||= {
-          master:  Pathname(@params[:'library-master']),
-          desktop: Pathname(@params[:'library-desktop']),
-          web:     Pathname(@params[:'library-web'])
-        }.compact
+          master:  @params[:'library-master'],
+          desktop: @params[:'library-desktop'],
+          web:     @params[:'library-web']
+        }.compact.transform_values(&Pathname.method(:new))
       end
     end
   end
