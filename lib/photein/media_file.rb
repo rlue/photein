@@ -54,7 +54,7 @@ module Photein
             FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
           end
         end
-      end.each(&:join)
+      end.compact.each(&:join)
 
       FileUtils.rm(path, noop: Photein::Config.dry_run || Photein::Config.keep)
     end
