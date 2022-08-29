@@ -11,10 +11,13 @@ module Photein
   class << self
     def run
       [Photein::Image, Photein::Video].each do |media_type|
+        # Why not use Dir.glob? It refuses to do case-insensitive matching on Linux
+        ftype_regex = /(#{media_type::SUPPORTED_FORMATS.join('|').gsub('.', '\.')})$/i
+
         Pathname(Photein::Config.source)
-          .join(Photein::Config.recursive ? '**' : '')
-          .join("*{#{media_type::SUPPORTED_FORMATS.join(',')}}")
-          .then { |glob| Dir.glob(glob, File::FNM_CASEFOLD).sort }
+          .join(Photein::Config.recursive ? '**' : '', '*')
+          .then(&Dir.method(:glob)).sort
+          .select { |file| file.match?(ftype_regex) }
           .map(&media_type.method(:new))
           .each(&:import)
       end
