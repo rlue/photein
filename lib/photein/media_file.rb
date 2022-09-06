@@ -132,7 +132,7 @@ module Photein
         file = Pathname(file)
         raise Errno::ENOENT, "#{file}" unless file.exist?
 
-        [Image, Video].find { |type| type::SUPPORTED_FORMATS.include?(file.extname) }
+        [Image, Video].find { |type| type::SUPPORTED_FORMATS.include?(file.extname.downcase) }
           .tap { |type| raise ArgumentError, "#{file}: Invalid media file" if type.nil? }
           .then { |type| type.new(file) }
       end
