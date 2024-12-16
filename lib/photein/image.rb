@@ -85,8 +85,8 @@ module Photein
           Time.strptime(filename, 'IMG-%Y%m%d-WA%M%S')
         when /^IMG_\d{8}_\d{6}_\d{3}$/ # Telegram: datetime in milliseconds (at download)
           Time.strptime(filename, 'IMG_%Y%m%d_%H%M%S_%L')
-        when /^signal-\d{4}(-\d{2}){5}[-\d]*$/ # Signal: datetime + optional counter (at receipt)
-          Time.strptime(filename[0, 26], 'signal-%F-%H-%M-%S')
+        when /^signal-\d{4}-\d{2}-\d{2}-\d{6}( \(\d+\))?$/ # Signal: datetime + optional counter (at receipt)
+          Time.strptime(filename[0, 24], 'signal-%F-%H%M%S')
         when /^\d{13}$/ # LINE: UNIX time in milliseconds (at download)
           Time.strptime(filename[0..-4], '%s')
         else

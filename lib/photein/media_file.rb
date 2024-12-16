@@ -54,9 +54,10 @@ module Photein
             FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
           end
         end
-      end.compact.each(&:join)
-
-      FileUtils.rm(path, noop: Photein::Config.dry_run || Photein::Config.keep)
+      end.compact.map(&:join).then do |threads|
+        # e.g.: with --library-web only, .dngs are skipped, so DON'T DELETE!
+        FileUtils.rm(path, noop: threads.empty? || Photein::Config.dry_run || Photein::Config.keep)
+      end
     end
 
     private

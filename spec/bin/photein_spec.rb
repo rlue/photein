@@ -11,7 +11,7 @@ RSpec.describe 'photein' do
   let(:source_dir) { "#{tmp_dir}/source" }
   let(:dest_dir) { "#{tmp_dir}/dest" }
   let(:cmd) { %(bin/photein #{options.join(' ')}) }
-  let(:options) { ['--source', source_dir, '--dest', dest_dir] }
+  let(:options) { ['--source', source_dir, '--library-master', dest_dir] }
 
   after { FileUtils.rm_rf(tmp_dir) }
 
@@ -29,7 +29,7 @@ RSpec.describe 'photein' do
       end
     end
 
-    context 'with no --dest' do
+    context 'with no --library-*' do
       let(:options) { ['--source', source_dir] }
 
       it 'fails' do
@@ -49,21 +49,9 @@ RSpec.describe 'photein' do
       end
     end
 
-    context 'when --dest dir does not exist' do
-      before { FileUtils.mkdir_p(source_dir) }
-
-      it 'fails' do
-        _out, err, status = Open3.capture3(cmd)
-
-        expect(err.chomp).to end_with("#{dest_dir}: no such directory")
-        expect(status.exitstatus).to eq(1)
-      end
-    end
-
     context 'when --source dir is empty' do
       before do
         FileUtils.mkdir_p(source_dir)
-        FileUtils.mkdir_p(dest_dir)
       end
 
       it 'fails' do
@@ -78,12 +66,18 @@ RSpec.describe 'photein' do
   describe 'core logic' do
     before do
       FileUtils.mkdir_p(source_dir)
-      FileUtils.mkdir_p(dest_dir)
       FileUtils.cp(source_files, source_dir)
     end
 
     let(:source_files) { Dir["#{data_dir}/basic/*.jpg"] }
     let(:dest_files) { Dir["#{dest_dir}/**/*"].select(&File.method(:file?)).sort }
+
+    context 'when --library-master dir does not exist' do
+      it 'automatically creates it' do
+        expect { system("#{cmd} >/dev/null") }
+          .to change { Dir.exist?(dest_dir) }.from(false).to(true)
+      end
+    end
 
     context 'for JPGs with timestamp metadata' do
       it 'moves them from source to dest' do
@@ -113,7 +107,7 @@ RSpec.describe 'photein' do
       end
 
       context 'with --keep option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--keep'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--keep'] }
 
         it 'copies them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
@@ -128,18 +122,18 @@ RSpec.describe 'photein' do
       end
 
       context 'with --dry-run option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--dry-run'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--dry-run'] }
 
         it 'is a no-op' do
           expect { system("#{cmd} >/dev/null") }
             .not_to change { `tree --noreport #{dest_dir}` }
 
-          expect(Dir.empty?(dest_dir)).to be(true)
+          expect(Dir.exist?(dest_dir)).to be(false)
         end
       end
 
-      context 'with --optimize-for=desktop option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+      context 'with --library-desktop option' do
+        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
         let!(:source_sha256) { Digest::SHA256.hexdigest(File.binread(source_files.first)) }
         let(:dest_sha256) { Digest::SHA256.hexdigest(File.binread(dest_files.first)) }
 
@@ -149,8 +143,8 @@ RSpec.describe 'photein' do
         end
       end
 
-      context 'with --optimize-for=web option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+      context 'with --library-web option' do
+        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
         let!(:source_resolution) { MiniMagick::Image.new(source_files.first).dimensions.reduce(&:*) }
         let(:dest_resolution) { MiniMagick::Image.new(dest_files.first).dimensions.reduce(&:*) }
 
@@ -177,8 +171,8 @@ RSpec.describe 'photein' do
         TREE
       end
 
-      context 'with --optimize-for=desktop option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+      context 'with --library-desktop option' do
+        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
 
         it 'moves them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
@@ -192,14 +186,14 @@ RSpec.describe 'photein' do
         end
       end
 
-      context 'with --optimize-for=web option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+      context 'with --library-web option' do
+        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
 
         it 'skips import' do
           expect { system("#{cmd} >/dev/null 2>&1") }
             .not_to change { `tree --noreport #{source_dir}` }
 
-          expect(Dir.empty?(dest_dir)).to be(true)
+          expect(Dir.exist?(dest_dir)).to be(false)
         end
       end
     end
@@ -218,8 +212,8 @@ RSpec.describe 'photein' do
         TREE
       end
 
-      context 'with --optimize-for=desktop option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+      context 'with --library-desktop option' do
+        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
 
         it 'moves them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
@@ -233,8 +227,8 @@ RSpec.describe 'photein' do
         end
       end
 
-      context 'with --optimize-for=web option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+      context 'with --library-web option' do
+        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
         let!(:source_resolution) { MiniMagick::Image.new(source_files.first).dimensions.reduce(&:*) }
         let(:dest_resolution) { MiniMagick::Image.new(dest_files.first).dimensions.reduce(&:*) }
 
@@ -270,7 +264,7 @@ RSpec.describe 'photein' do
       end
 
       context 'with --keep option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--keep'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--keep'] }
 
         it 'copies them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
@@ -285,24 +279,24 @@ RSpec.describe 'photein' do
       end
 
       context 'with --dry-run option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--dry-run'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--dry-run'] }
 
         it 'is a no-op' do
           expect { system("#{cmd} >/dev/null") }
             .not_to change { `tree --noreport #{dest_dir}` }
 
-          expect(Dir.empty?(dest_dir)).to be(true)
+          expect(Dir.exist?(dest_dir)).to be(false)
         end
       end
 
-      context 'with --optimize-for=desktop option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+      context 'with --library-desktop option' do
+        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
 
         it 'transcodes at quality -crf 28'
       end
 
-      context 'with --optimize-for=web option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+      context 'with --library-web option' do
+        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
 
         it 'transcodes at quality -crf 35'
       end
@@ -325,7 +319,7 @@ RSpec.describe 'photein' do
       end
 
       context 'with --keep option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--keep'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--keep'] }
 
         it 'copies them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
@@ -340,24 +334,24 @@ RSpec.describe 'photein' do
       end
 
       context 'with --dry-run option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--dry-run'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--dry-run'] }
 
         it 'is a no-op' do
           expect { system("#{cmd} >/dev/null") }
             .not_to change { `tree --noreport #{dest_dir}` }
 
-          expect(Dir.empty?(dest_dir)).to be(true)
+          expect(Dir.exist?(dest_dir)).to be(false)
         end
       end
 
-      context 'with --optimize-for=desktop option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'desktop'] }
+      context 'with --library-desktop option' do
+        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
 
         it 'transcodes at quality -crf 28'
       end
 
-      context 'with --optimize-for=web option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--optimize-for', 'web'] }
+      context 'with --library-web option' do
+        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
 
         it 'transcodes at quality -crf 35'
       end
@@ -406,11 +400,11 @@ RSpec.describe 'photein' do
         expect { system("#{cmd} >/dev/null") }
           .not_to change { `tree --noreport #{source_dir}` }
 
-        expect(Dir.empty?(dest_dir)).to be(true)
+        expect(Dir.exist?(dest_dir)).to be(false)
       end
 
       context 'with --recursive option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--recursive'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--recursive'] }
 
         it 'does move them' do
           expect { system("#{cmd} >/dev/null") }
@@ -442,13 +436,13 @@ RSpec.describe 'photein' do
       end
 
       context 'with --safe option' do
-        let(:options) { ['--source', source_dir, '--dest', dest_dir, '--safe'] }
+        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--safe'] }
 
         it 'skips them' do
           expect { system("#{cmd} >/dev/null 2>&1") }
             .not_to change { `tree --noreport #{source_dir}` }
 
-          expect(Dir.empty?(dest_dir)).to be(true)
+          expect(Dir.exist?(dest_dir)).to be(false)
         end
       end
     end
