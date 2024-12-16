@@ -107,25 +107,22 @@ module Photein
       @extname ||= NORMAL_EXTNAME_MAP[path.extname.downcase] || path.extname.downcase
     end
 
-    def resolve_name_collision(filename)
-      raise ArgumentError, 'Invalid filename' if filename.to_s.include?('*')
+    def resolve_name_collision(pathname)
+      raise ArgumentError, 'Invalid filename' if pathname.to_s.include?('*')
 
-      collision_glob = Pathname(filename).sub_ext("*#{filename.extname}")
+      collisions = Dir[pathname.sub_ext("*#{pathname.extname}")]
 
-      case Dir[collision_glob].length
-      when 0 # if no files found, no biggie
-      when 1 # if one file found, WITH OR WITHOUT COUNTER, reset counter to a
-        if Dir[collision_glob].first != collision_glob.sub('*', 'a') # don't try if it's already a lone, correctly-countered file
-          Photein.logger.info('conflicting timestamp found; adding counter to existing file')
-          FileUtils.mv(Dir[collision_glob].first, collision_glob.sub('*', 'a'), noop: Photein::Config.dry_run)
-        end
-      else # TODO: if multiple files found, rectify them?
+      case collisions.length
+      when 0
+        return pathname
+      when 1
+        return pathname.sub_ext("+1#{pathname.extname}")
+      else # TODO: what to do for heterogeneous suffixes?
+        collisions.tap { |c| c.delete(pathname.to_s) }.max
+          .slice(/(?<=^#{pathname.to_s.delete_suffix(pathname.extname)}).*(?=#{pathname.extname}$)/)
+          .tap { |counter| raise 'Unresolved timestamp conflict' unless counter&.match?(/^\+[1-8]$/) }
+          .then { |counter| pathname.sub_ext("#{counter.next}#{pathname.extname}") }
       end
-
-      # return the next usable filename
-      Dir[collision_glob].max&.slice(/.(?=#{Regexp.escape(collision_glob.extname)})/)&.next
-        .tap { |counter| raise 'Unresolved timestamp conflict' unless [*Array('a'..'z'), nil].include?(counter) }
-        .then { |counter| filename.sub_ext("#{counter}#{filename.extname}") }
     end
 
     class << self

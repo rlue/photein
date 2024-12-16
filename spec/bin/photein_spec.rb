@@ -100,8 +100,9 @@ RSpec.describe 'photein' do
           expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
             #{dest_dir}
             └── 2018
-                ├── 2018-09-01_145650a.jpg
-                └── 2018-09-01_145650b.jpg
+                ├── 2018-09-01_145650+1.jpg
+                ├── 2018-09-01_145650+2.jpg
+                └── 2018-09-01_145650.jpg
           TREE
         end
       end
