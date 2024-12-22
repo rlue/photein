@@ -4,6 +4,7 @@ require 'fileutils'
 require 'open3'
 
 require 'mini_magick'
+require 'tzinfo'
 
 RSpec.describe 'photein' do
   let(:data_dir) { File.expand_path('../data', __dir__) }
@@ -249,27 +250,32 @@ RSpec.describe 'photein' do
     end
 
     context 'for MP4s with timestamp metadata' do
-      let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
-      let(:utc_timestamp) { Time.new(2021, 3, 12, 18, 40, 32, 'utc') }
-      let(:local_timestamp) { utc_timestamp.getlocal }
+      context 'and GPS data' do
+        let(:source_files) { Dir["#{data_dir}/gps/2022-01-02_032321.mp4"] }
+        let(:utc_timestamp) { Time.utc(2022, 1, 2, 3, 23, 21) }
+        let(:local_tz) { TZInfo::Timezone.get('America/Chicago') }
+        let(:local_timestamp) { local_tz.to_local(utc_timestamp) }
 
-      it 'converts UTC timestamps to local zone' do
-        expect { system("#{cmd} >/dev/null") }
-          .to change { Dir.empty?(source_dir) }.from(false).to(true)
+        it 'converts UTC timestamps to local zone' do
+          expect { system("#{cmd} >/dev/null") }
+            .to change { Dir.empty?(source_dir) }.from(false).to(true)
 
-        expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
-          #{dest_dir}
-          └── 2021
-              └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
-        TREE
+          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+            #{dest_dir}
+            └── 2022
+                └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
+          TREE
+        end
       end
 
-      context 'with --keep option' do
-        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--keep'] }
+      context 'but no GPS data' do
+        let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
+        let(:utc_timestamp) { Time.utc(2021, 3, 12, 18, 40, 32) }
+        let(:local_timestamp) { utc_timestamp.getlocal }
 
-        it 'copies them from source to dest' do
+        it 'converts UTC timestamps to local zone' do
           expect { system("#{cmd} >/dev/null") }
-            .not_to change { `tree --noreport #{source_dir}` }
+            .to change { Dir.empty?(source_dir) }.from(false).to(true)
 
           expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
             #{dest_dir}
@@ -277,35 +283,50 @@ RSpec.describe 'photein' do
                 └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
           TREE
         end
-      end
 
-      context 'with --dry-run option' do
-        let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--dry-run'] }
+        context 'with --keep option' do
+          let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--keep'] }
 
-        it 'is a no-op' do
-          expect { system("#{cmd} >/dev/null") }
-            .not_to change { `tree --noreport #{dest_dir}` }
+          it 'copies them from source to dest' do
+            expect { system("#{cmd} >/dev/null") }
+              .not_to change { `tree --noreport #{source_dir}` }
 
-          expect(Dir.exist?(dest_dir)).to be(false)
+            expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+              #{dest_dir}
+              └── 2021
+                  └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
+            TREE
+          end
         end
-      end
 
-      context 'with --library-desktop option' do
-        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
+        context 'with --dry-run option' do
+          let(:options) { ['--source', source_dir, '--library-master', dest_dir, '--dry-run'] }
 
-        it 'transcodes at quality -crf 28'
-      end
+          it 'is a no-op' do
+            expect { system("#{cmd} >/dev/null") }
+              .not_to change { `tree --noreport #{dest_dir}` }
 
-      context 'with --library-web option' do
-        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
+            expect(Dir.exist?(dest_dir)).to be(false)
+          end
+        end
 
-        it 'transcodes at quality -crf 35'
+        context 'with --library-desktop option' do
+          let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
+
+          it 'transcodes at quality -crf 28'
+        end
+
+        context 'with --library-web option' do
+          let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
+
+          it 'transcodes at quality -crf 35'
+        end
       end
     end
 
     context 'for MOVs with timestamp metadata' do
       let(:source_files) { Dir["#{data_dir}/basic/*.mov"] }
-      let(:utc_timestamp) { Time.new(2020, 5, 1, 7, 20, 11, 'utc') }
+      let(:utc_timestamp) { Time.utc(2020, 5, 1, 7, 20, 11) }
       let(:local_timestamp) { utc_timestamp.getlocal }
 
       it 'converts UTC timestamps to local zone' do

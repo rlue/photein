@@ -5,7 +5,10 @@ require 'time'
 
 require 'photein/media_file'
 require 'mediainfo'
+require 'mini_exiftool'
 require 'streamio-ffmpeg'
+require 'tzinfo'
+require 'wheretz'
 require_relative '../../vendor/terminal-size/lib/terminal-size'
 
 module Photein
@@ -65,12 +68,30 @@ module Photein
       raise
     end
 
+    # Video timestamps are typically UTC, and must be adjusted to local TZ.
+    # Look for GPS tags first, then default to system local TZ.
     def metadata_stamp
-      # video timestamps are typically UTC
-      MediaInfo.from(path.to_s).general.encoded_date&.getlocal
+      exif = MiniExiftool.new(path.to_s)
+
+      MediaInfo.from(path.to_s).general.encoded_date&.then do |utc_timestamp|
+        if exif.gps_latitude && exif.gps_longitude
+          WhereTZ.get(*gps_coords(exif)).to_local(utc_timestamp)
+        else
+          utc_timestamp.getlocal
+        end
+      end
     rescue MediaInfo::EnvironmentError
       Photein.logger.error('mediainfo is required to read timestamp metadata')
       raise
+    end
+
+    def gps_coords(exif)
+      [exif.gps_latitude, exif.gps_longitude].map do |str|
+        # `str' follows the format %(xx deg xx' xx.xx" x)
+        str.split(/[^\d.NESW]+/).then do |deg, min, sec, dir|
+          (deg.to_i + (min.to_f / 60) + (sec.to_f / 3600)) * (%(N E).include?(dir) ? 1 : -1)
+        end
+      end
     end
 
     # NOTE: This may be largely unnecessary:

@@ -24,6 +24,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'pstore', '~> 0.1'
   s.add_dependency 'rexml', '~> 3.4'
   s.add_dependency 'streamio-ffmpeg', '~> 3.0'
+  s.add_dependency 'tzinfo', '~> 2.0'
+  s.add_dependency 'wheretz', '~> 0.0'
   s.add_development_dependency 'pry-remote', '~> 0.1'
   s.add_development_dependency 'rspec', '~> 3.10'
   s.metadata = { 'source_code_uri' => 'https://github.com/rlue/photein' }
