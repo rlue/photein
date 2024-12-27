@@ -7,7 +7,7 @@ require 'time'
 
 module Photein
   class MediaFile
-    DATE_FORMAT = '%F_%H%M%S'.freeze
+    DATE_FORMAT = '%F_%H%M%S'
 
     NORMAL_EXTNAME_MAP = {
       '.jpeg' => '.jpg'
@@ -31,13 +31,13 @@ module Photein
           dest_basename = timestamp.strftime(DATE_FORMAT)
           dest_extname  = self.class::OPTIMIZATION_FORMAT_MAP.dig(lib_type, extname) || extname
           dest_path     = lib_path
-                            .join(timestamp.strftime('%Y'))
-                            .join("#{dest_basename}#{dest_extname}")
-                            .then(&method(:resolve_name_collision))
+                          .join(timestamp.strftime('%Y'))
+                          .join("#{dest_basename}#{dest_extname}")
+                          .then(&method(:resolve_name_collision))
           tempfile      = Pathname(Dir.tmpdir)
-                            .join('photein').join(lib_type.to_s)
-                            .tap(&FileUtils.method(:mkdir_p))
-                            .join(dest_path.basename)
+                          .join('photein').join(lib_type.to_s)
+                          .tap(&FileUtils.method(:mkdir_p))
+                          .join(dest_path.basename)
 
           optimize(tempfile: tempfile, lib_type: lib_type)
 
@@ -53,6 +53,12 @@ module Photein
             FileUtils.cp(path, dest_path, noop: Photein::Config.dry_run)
             FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
           end
+
+          if !Photein::Config.timestamp_delta.zero? && !Photein::Config.dry_run
+            MiniExiftool.new(dest_path.to_s) # TODO: Drop `.to_s` after https://github.com/janfri/mini_exiftool/issues/50 is resolved
+                        .tap { |file| file.all_dates = timestamp.strftime('%Y:%m:%d %H:%M:%S') }
+                        .save!
+          end
         end
       end.compact.map(&:join).then do |threads|
         # e.g.: with --library-web only, .dngs are skipped, so DON'T DELETE!
@@ -63,7 +69,7 @@ module Photein
     private
 
     def corrupted?(result = false)
-      return result.tap do |r|
+      result.tap do |r|
         Photein.logger.error("#{path.basename}: cannot import corrupted file") if r
       end
     end
@@ -76,21 +82,19 @@ module Photein
     def in_use?
       out, _err, status = Open3.capture3("lsof '#{path}'")
 
-      if status.success? # Do open files ALWAYS return exit status 0? (I think so.)
-        cmd, pid = out.lines[1]&.split&.first(2)
-        Photein.logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
-        return true
-      else
-        return false
-      end
+      return false unless status.success? # Do open files ALWAYS return exit status 0? (I think so.)
+
+      cmd, pid = out.lines[1]&.split&.first(2)
+      Photein.logger.fatal("skipping #{path}: file in use by #{cmd} (PID #{pid})")
+      true
     end
 
-    def non_optimizable_format?(lib_type = :master) # may be overridden by subclasses
-      return false
+    def non_optimizable_format?(_lib_type = :master) # may be overridden by subclasses
+      false
     end
 
     def timestamp
-      @timestamp ||= (metadata_stamp || filename_stamp)
+      @timestamp ||= (metadata_stamp || filename_stamp) + Photein::Config.timestamp_delta
     end
 
     def filename_stamp
@@ -114,14 +118,14 @@ module Photein
 
       case collisions.length
       when 0
-        return pathname
+        pathname
       when 1
-        return pathname.sub_ext("+1#{pathname.extname}")
+        pathname.sub_ext("+1#{pathname.extname}")
       else # TODO: what to do for heterogeneous suffixes?
         collisions.tap { |c| c.delete(pathname.to_s) }.max
-          .slice(/(?<=^#{pathname.to_s.delete_suffix(pathname.extname)}).*(?=#{pathname.extname}$)/)
-          .tap { |counter| raise 'Unresolved timestamp conflict' unless counter&.match?(/^\+[1-8]$/) }
-          .then { |counter| pathname.sub_ext("#{counter.next}#{pathname.extname}") }
+                  .slice(/(?<=^#{pathname.to_s.delete_suffix(pathname.extname)}).*(?=#{pathname.extname}$)/)
+                  .tap { |counter| raise 'Unresolved timestamp conflict' unless counter&.match?(/^\+[1-8]$/) }
+                  .then { |counter| pathname.sub_ext("#{counter.next}#{pathname.extname}") }
       end
     end
 
@@ -131,8 +135,8 @@ module Photein
         raise Errno::ENOENT, "#{file}" unless file.exist?
 
         [Image, Video].find { |type| type::SUPPORTED_FORMATS.include?(file.extname.downcase) }
-          .tap { |type| raise ArgumentError, "#{file}: Invalid media file" if type.nil? }
-          .then { |type| type.new(file) }
+                      .tap { |type| raise ArgumentError, "#{file}: Invalid media file" if type.nil? }
+                      .then { |type| type.new(file) }
       end
     end
   end

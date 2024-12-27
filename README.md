@@ -41,7 +41,10 @@ based on metadata timestamps, filename timestamps, or file creation times.
 > where and how your photos should be stored on disk
 > (looking at you, Apple Photos 👀), Photein is not for you.
 
-It can also optimize photos and videos for reduced file size.
+It can also:
+
+* optimize photos and videos for reduced file size
+* shift all timestamps by a given interval
 
 What _doesn’t_ it do?
 ---------------------

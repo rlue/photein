@@ -1,8 +1,5 @@
 * Make sure all metadata is always preserved across downscaling / re-encoding
 
-* Support `--shift-timestamp` option
-  (accept integer number of hours to shift timestamp by)
-
 * Support `--geotag` option
   (accept GPS lat/lon OR IANA TZ identifier)
 

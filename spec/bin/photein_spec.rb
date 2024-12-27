@@ -3,6 +3,7 @@ require 'digest'
 require 'fileutils'
 require 'open3'
 
+require 'mini_exiftool'
 require 'mini_magick'
 require 'tzinfo'
 
@@ -25,7 +26,7 @@ RSpec.describe 'photein' do
       it 'fails' do
         _out, err, status = Open3.capture3(cmd.split.first)
 
-        expect(err.chomp).to eq("photein: no source directory given")
+        expect(err.chomp).to eq('photein: no source directory given')
         expect(status.exitstatus).to eq(1)
       end
     end
@@ -36,7 +37,7 @@ RSpec.describe 'photein' do
       it 'fails' do
         _out, err, status = Open3.capture3(cmd)
 
-        expect(err.chomp).to eq("photein: no destination directory given")
+        expect(err.chomp).to eq('photein: no destination directory given')
         expect(status.exitstatus).to eq(1)
       end
     end
@@ -113,7 +114,7 @@ RSpec.describe 'photein' do
 
         it 'copies them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
-            .not_to change { `tree --noreport #{source_dir}` }
+            .not_to(change { `tree --noreport #{source_dir}` })
 
           expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
             #{dest_dir}
@@ -128,7 +129,7 @@ RSpec.describe 'photein' do
 
         it 'is a no-op' do
           expect { system("#{cmd} >/dev/null") }
-            .not_to change { `tree --noreport #{dest_dir}` }
+            .not_to(change { `tree --noreport #{dest_dir}` })
 
           expect(Dir.exist?(dest_dir)).to be(false)
         end
@@ -157,7 +158,57 @@ RSpec.describe 'photein' do
           expect(dest_resolution).to be <= (2 * 1024 * 1024)
         end
       end
-    end
+
+      context 'with --shift-timestamp option' do
+        let(:options) do
+          [
+            '--source', source_dir,
+            '--library-master', dest_dir,
+            '--shift-timestamp', timestamp_delta
+          ]
+        end
+
+        let(:source_files) { Dir["#{data_dir}/basic/IMG_20200214_225530.jpg"] }
+        let(:timestamp_delta) { '-8' }
+        let(:adjusted_timestamp) { Time.new(2020, 2, 14, 14, 55, 30) }
+        let(:dest_file) { "#{dest_dir}/#{adjusted_timestamp.strftime('%Y/%F_%H%M%S')}.jpg" }
+
+        it 'applies shift to filename' do
+          system("#{cmd} >/dev/null")
+
+          expect(dest_files).to include dest_file
+        end
+
+        it 'applies shift to all date tags' do
+          system("#{cmd} >/dev/null")
+
+          expect(MiniExiftool.new(dest_file).date_time_original).to eq adjusted_timestamp
+          expect(MiniExiftool.new(dest_file).create_date).to eq adjusted_timestamp
+          expect(MiniExiftool.new(dest_file).modify_date).to eq adjusted_timestamp
+        end
+
+        shared_examples 'invalid value' do |type|
+          it "rejects #{type}" do
+            _out, err, status = Open3.capture3(cmd)
+
+            expect(err.chomp).to eq('photein: invalid --shift-timestamp option (must be integer)')
+            expect(status.exitstatus).to eq(1)
+          end
+        end
+
+        it_behaves_like 'invalid value', 'alphanumeric strings' do
+          let(:timestamp_delta) { 'foo123' }
+        end
+
+        it_behaves_like 'invalid value', 'floats' do
+          let(:timestamp_delta) { '0.134' }
+        end
+
+        it_behaves_like 'invalid value', '%H:%M-formatted strings' do
+          let(:timestamp_delta) { '-02:00' }
+        end
+      end
+
 
     context 'for DNGs' do
       let(:source_files) { Dir["#{data_dir}/basic/*.DNG"] }
@@ -193,7 +244,7 @@ RSpec.describe 'photein' do
 
         it 'skips import' do
           expect { system("#{cmd} >/dev/null 2>&1") }
-            .not_to change { `tree --noreport #{source_dir}` }
+            .not_to(change { `tree --noreport #{source_dir}` })
 
           expect(Dir.exist?(dest_dir)).to be(false)
         end
@@ -289,7 +340,7 @@ RSpec.describe 'photein' do
 
           it 'copies them from source to dest' do
             expect { system("#{cmd} >/dev/null") }
-              .not_to change { `tree --noreport #{source_dir}` }
+              .not_to(change { `tree --noreport #{source_dir}` })
 
             expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
               #{dest_dir}
@@ -304,7 +355,7 @@ RSpec.describe 'photein' do
 
           it 'is a no-op' do
             expect { system("#{cmd} >/dev/null") }
-              .not_to change { `tree --noreport #{dest_dir}` }
+              .not_to(change { `tree --noreport #{dest_dir}` })
 
             expect(Dir.exist?(dest_dir)).to be(false)
           end
@@ -320,6 +371,36 @@ RSpec.describe 'photein' do
           let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
 
           it 'transcodes at quality -crf 35'
+        end
+      end
+
+      context 'with --shift-timestamp option' do
+        let(:options) do
+          [
+            '--source', source_dir,
+            '--library-master', dest_dir,
+            '--shift-timestamp', timestamp_delta
+          ]
+        end
+
+        let(:source_files) { Dir["#{data_dir}/basic/VID_20210312_104032.mp4"] }
+        let(:timestamp_delta) { '-3' }
+        let(:adjusted_timestamp) { Time.new(2021, 3, 12, 15, 40, 32) } # actual (UTC) timestamp is filename +8h, because...
+        let(:adjusted_filename_stamp) { Time.new(2021, 3, 12, 7, 40, 32) } # ...this file is geotagged for UTC-8
+        let(:dest_file) { "#{dest_dir}/#{adjusted_filename_stamp.strftime('%Y/%F_%H%M%S')}.mp4" }
+
+        it 'applies shift to filename' do
+          system("#{cmd} >/dev/null")
+
+          expect(dest_files).to include dest_file
+        end
+
+        it 'applies shift to all date tags' do
+          system("#{cmd} >/dev/null")
+
+          expect(MiniExiftool.new(dest_file).date_time_original).to eq adjusted_timestamp
+          expect(MiniExiftool.new(dest_file).create_date).to eq adjusted_timestamp
+          expect(MiniExiftool.new(dest_file).modify_date).to eq adjusted_timestamp
         end
       end
     end
@@ -345,7 +426,7 @@ RSpec.describe 'photein' do
 
         it 'copies them from source to dest' do
           expect { system("#{cmd} >/dev/null") }
-            .not_to change { `tree --noreport #{source_dir}` }
+            .not_to(change { `tree --noreport #{source_dir}` })
 
           expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
             #{dest_dir}
@@ -360,7 +441,7 @@ RSpec.describe 'photein' do
 
         it 'is a no-op' do
           expect { system("#{cmd} >/dev/null") }
-            .not_to change { `tree --noreport #{dest_dir}` }
+            .not_to(change { `tree --noreport #{dest_dir}` })
 
           expect(Dir.exist?(dest_dir)).to be(false)
         end
@@ -420,7 +501,7 @@ RSpec.describe 'photein' do
 
       it 'does not move them' do
         expect { system("#{cmd} >/dev/null") }
-          .not_to change { `tree --noreport #{source_dir}` }
+          .not_to(change { `tree --noreport #{source_dir}` })
 
         expect(Dir.exist?(dest_dir)).to be(false)
       end
@@ -462,7 +543,7 @@ RSpec.describe 'photein' do
 
         it 'skips them' do
           expect { system("#{cmd} >/dev/null 2>&1") }
-            .not_to change { `tree --noreport #{source_dir}` }
+            .not_to(change { `tree --noreport #{source_dir}` })
 
           expect(Dir.exist?(dest_dir)).to be(false)
         end

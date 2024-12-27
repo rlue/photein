@@ -17,6 +17,7 @@ module Photein
       ['-k',             '--keep',                    'do not delete source files'],
       ['-i',             '--interactive',             'ask whether to import each file found'],
       ['-n',             '--dry-run',                 'perform a "no-op" trial run'],
+      [                  '--shift-timestamp=N',       'adjust metadata timestamps by N hours'],
       [                  '--safe',                    'skip files in use by other processes'],
     ].freeze
 
@@ -25,6 +26,8 @@ module Photein
       .grep(/^--/)
       .map { |option| option[/\w[a-z\-]+/] }
       .map(&:to_sym)
+
+    SECONDS_PER_HOUR = 60 * 60
 
     @params = {}
 
@@ -44,6 +47,9 @@ module Photein
         end.tap { |p| p.parse!(into: @params) }
 
         @params[:verbose] ||= @params[:'dry-run']
+
+        raise "invalid --shift-timestamp option (must be integer)" if @params.key?(:'shift-timestamp') && !@params[:'shift-timestamp'].match?(/^-?\d+$/)
+
         @params.freeze
 
         raise "no source directory given" if !@params.key?(:source)
@@ -78,6 +84,10 @@ module Photein
           desktop: @params[:'library-desktop'],
           web:     @params[:'library-web']
         }.compact.transform_values(&Pathname.method(:new))
+      end
+
+      def timestamp_delta
+        @timestamp_delta ||= @params[:'shift-timestamp'].to_i * SECONDS_PER_HOUR
       end
     end
   end
