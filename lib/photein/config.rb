@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'singleton'
 require 'optparse'
+
+require 'tzinfo'
 
 module Photein
   class Config
@@ -18,7 +21,8 @@ module Photein
       ['-i',             '--interactive',             'ask whether to import each file found'],
       ['-n',             '--dry-run',                 'perform a "no-op" trial run'],
       [                  '--shift-timestamp=N',       'adjust metadata timestamps by N hours'],
-      [                  '--safe',                    'skip files in use by other processes'],
+      [                  '--local-tz=TIMEZONE',       "backfill missing GPS* metadata on videos\n                                     (to name files in local time instead of UTC)"],
+      [                  '--safe',                    'skip files in use by other processes']
     ].freeze
 
     OPTION_NAMES = OPTIONS
@@ -28,6 +32,11 @@ module Photein
       .map(&:to_sym)
 
     SECONDS_PER_HOUR = 60 * 60
+
+    TZ_GEOCOORDS = File.expand_path('../../data/tz_coords.json', File.dirname(__FILE__))
+      .then(&File.method(:read))
+      .then(&JSON.method(:parse))
+      .freeze
 
     @params = {}
 
@@ -49,6 +58,16 @@ module Photein
         @params[:verbose] ||= @params[:'dry-run']
 
         raise "invalid --shift-timestamp option (must be integer)" if @params.key?(:'shift-timestamp') && !@params[:'shift-timestamp'].match?(/^-?\d+$/)
+
+        if @params.key?(:'local-tz')
+          if !TZInfo::Timezone.all_identifiers.include?(@params[:'local-tz'])
+            raise 'invalid --local-tz option (must be from IANA tz database)'
+          end
+
+          if tz_coordinates.nil?
+            raise 'invalid --local-tz option (must reference a location)'
+          end
+        end
 
         @params.freeze
 
@@ -88,6 +107,18 @@ module Photein
 
       def timestamp_delta
         @timestamp_delta ||= @params[:'shift-timestamp'].to_i * SECONDS_PER_HOUR
+      end
+
+      def local_tz
+        return @local_tz if defined? @local_tz
+
+        @local_tz = @params.key?(:'local-tz') ? TZInfo::Timezone.get(@params[:'local-tz']) : nil
+      end
+
+      def tz_coordinates
+        return @tz_coordinates if defined? @tz_coordinates
+
+        @tz_coordinates = @params.key?(:'local-tz') ? TZ_GEOCOORDS[@params[:'local-tz']] : nil
       end
     end
   end

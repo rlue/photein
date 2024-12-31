@@ -10,10 +10,11 @@ Gem::Specification.new do |s|
   s.summary = 'Import/rename photos & videos from one directory to another.'
   s.description = <<~DESC.chomp
   DESC
-  s.files = `git ls-files bin lib vendor README.md`.split
+  s.files = `git ls-files bin data lib vendor README.md`.split
   s.executables += ['photein']
   s.homepage = 'https://github.com/rlue/photein'
 
+  s.add_dependency 'activesupport', '~> 8.0'
   s.add_dependency 'logger', '~> 1.6'
   s.add_dependency 'mediainfo', '~> 1.5'
   s.add_dependency 'mini_exiftool', '~> 2.10'

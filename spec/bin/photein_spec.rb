@@ -209,6 +209,59 @@ RSpec.describe 'photein' do
         end
       end
 
+      context 'with --local-tz option' do
+        let(:options) do
+          [
+            '--source', source_dir,
+            '--library-master', dest_dir,
+            '--local-tz', tz
+          ]
+        end
+
+        let(:source_files) { Dir["#{data_dir}/basic/IMG_20200214_225530.jpg"] }
+        let(:tz) { 'Europe/Mariehamn' }
+        let(:offset) { '+02:00' }
+        let(:dest_file) { "#{dest_dir}/2020/2020-02-14_225530.jpg" }
+
+        it 'does not adjust filename' do
+          system("#{cmd} >/dev/null")
+
+          expect(dest_files).to include dest_file
+        end
+
+        it 'writes OffsetTime* tags' do
+          system("#{cmd} >/dev/null")
+
+          expect(MiniExiftool.new(dest_file).offset_time).to eq offset
+          expect(MiniExiftool.new(dest_file).offset_time_original).to eq offset
+          expect(MiniExiftool.new(dest_file).offset_time_digitized).to eq offset
+        end
+
+        shared_examples 'invalid value' do |type|
+          it "reject #{type}" do
+            _out, err, status = Open3.capture3(cmd)
+
+            expect(err.chomp).to eq("photein: invalid --local-tz option (#{error_msg})")
+            expect(status.exitstatus).to eq(1)
+          end
+        end
+
+        it_behaves_like 'invalid value', 'location-less time zone' do
+          let(:tz) { 'Etc/Zulu' }
+          let(:error_msg) { 'must reference a location' }
+        end
+
+        it_behaves_like 'invalid value', 'unqualified place name' do
+          let(:tz) { 'Guernsey' }
+          let(:error_msg) { 'must be from IANA tz database' }
+        end
+
+        it_behaves_like 'invalid value', 'non-standard format' do
+          let(:tz) { 'pacific/pago\\ pago' }
+          let(:error_msg) { 'must be from IANA tz database' }
+        end
+      end
+    end
 
     context 'for DNGs' do
       let(:source_files) { Dir["#{data_dir}/basic/*.DNG"] }
@@ -302,27 +355,10 @@ RSpec.describe 'photein' do
 
     context 'for MP4s with timestamp metadata' do
       context 'and GPS data' do
-        let(:source_files) { Dir["#{data_dir}/gps/2022-01-02_032321.mp4"] }
-        let(:utc_timestamp) { Time.utc(2022, 1, 2, 3, 23, 21) }
-        let(:local_tz) { TZInfo::Timezone.get('America/Chicago') }
-        let(:local_timestamp) { local_tz.to_local(utc_timestamp) }
-
-        it 'converts UTC timestamps to local zone' do
-          expect { system("#{cmd} >/dev/null") }
-            .to change { Dir.empty?(source_dir) }.from(false).to(true)
-
-          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
-            #{dest_dir}
-            └── 2022
-                └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
-          TREE
-        end
-      end
-
-      context 'but no GPS data' do
         let(:source_files) { Dir["#{data_dir}/basic/*.mp4"] }
         let(:utc_timestamp) { Time.utc(2021, 3, 12, 18, 40, 32) }
-        let(:local_timestamp) { utc_timestamp.getlocal }
+        let(:local_tz) { TZInfo::Timezone.get('Asia/Samarkand') }
+        let(:local_timestamp) { local_tz.to_local(utc_timestamp) }
 
         it 'converts UTC timestamps to local zone' do
           expect { system("#{cmd} >/dev/null") }
@@ -372,35 +408,106 @@ RSpec.describe 'photein' do
 
           it 'transcodes at quality -crf 35'
         end
+
+        context 'with --shift-timestamp option' do
+          let(:options) do
+            [
+              '--source', source_dir,
+              '--library-master', dest_dir,
+              '--shift-timestamp', '-3'
+            ]
+          end
+
+          let(:adjusted_timestamp) { Time.new(2021, 3, 12, 15, 40, 32) } # actual (UTC) timestamp is filename +8h, because...
+          let(:adjusted_filename_stamp) { Time.new(2021, 3, 12, 20, 40, 32) } # ...this file is geotagged for UTC+5
+          let(:dest_file) { "#{dest_dir}/#{adjusted_filename_stamp.strftime('%Y/%F_%H%M%S')}.mp4" }
+
+          it 'applies shift to filename' do
+            system("#{cmd} >/dev/null")
+
+            expect(dest_files).to include dest_file
+          end
+
+          it 'applies shift to all date tags' do
+            system("#{cmd} >/dev/null")
+
+            expect(MiniExiftool.new(dest_file).date_time_original).to eq adjusted_timestamp
+            expect(MiniExiftool.new(dest_file).create_date).to eq adjusted_timestamp
+            expect(MiniExiftool.new(dest_file).modify_date).to eq adjusted_timestamp
+          end
+        end
+
+        context 'with --local-tz option' do
+          let(:options) do
+            [
+              '--source', source_dir,
+              '--library-master', dest_dir,
+              '--local-tz', 'Europe/Mariehamn'
+            ]
+          end
+
+          let(:dest_file) { "#{dest_dir}/2021/#{local_timestamp.strftime('%F_%H%M%S')}.mp4" }
+
+          it 'keeps original tz offset for filename' do
+            expect { system("#{cmd} >/dev/null") }
+              .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+            expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+              #{dest_dir}
+              └── 2021
+                  └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
+            TREE
+          end
+
+          it 'does not clobber GPS tags' do
+            gps_pre = MiniExiftool.new(source_files.first).gps_position
+
+            system("#{cmd} >/dev/null")
+
+            expect(MiniExiftool.new(dest_file).gps_position).to eq(gps_pre)
+          end
+        end
       end
 
-      context 'with --shift-timestamp option' do
-        let(:options) do
-          [
-            '--source', source_dir,
-            '--library-master', dest_dir,
-            '--shift-timestamp', timestamp_delta
-          ]
+      context 'but no GPS data' do
+        let(:source_files) { Dir["#{data_dir}/no-gps/VID_20210312_104032.mp4"] }
+        let(:utc_timestamp) { Time.utc(2021, 3, 12, 10, 40, 32) }
+        let(:local_timestamp) { utc_timestamp.getlocal }
+
+        it 'converts UTC timestamps to system-local zone' do
+          expect { system("#{cmd} >/dev/null") }
+            .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+            #{dest_dir}
+            └── 2021
+                └── #{local_timestamp.strftime('%F_%H%M%S')}.mp4
+          TREE
         end
 
-        let(:source_files) { Dir["#{data_dir}/basic/VID_20210312_104032.mp4"] }
-        let(:timestamp_delta) { '-3' }
-        let(:adjusted_timestamp) { Time.new(2021, 3, 12, 15, 40, 32) } # actual (UTC) timestamp is filename +8h, because...
-        let(:adjusted_filename_stamp) { Time.new(2021, 3, 12, 7, 40, 32) } # ...this file is geotagged for UTC-8
-        let(:dest_file) { "#{dest_dir}/#{adjusted_filename_stamp.strftime('%Y/%F_%H%M%S')}.mp4" }
+        context 'with --local-tz option' do
+          let(:options) do
+            [
+              '--source', source_dir,
+              '--library-master', dest_dir,
+              '--local-tz', 'Europe/Mariehamn' 
+            ]
+          end
 
-        it 'applies shift to filename' do
-          system("#{cmd} >/dev/null")
+          let(:dest_file) { "#{dest_dir}/2021/2021-03-12_124032.mp4" }
 
-          expect(dest_files).to include dest_file
-        end
+          it 'applies time zone offset to filename' do
+            system("#{cmd} >/dev/null")
 
-        it 'applies shift to all date tags' do
-          system("#{cmd} >/dev/null")
+            expect(dest_files).to include dest_file
+          end
 
-          expect(MiniExiftool.new(dest_file).date_time_original).to eq adjusted_timestamp
-          expect(MiniExiftool.new(dest_file).create_date).to eq adjusted_timestamp
-          expect(MiniExiftool.new(dest_file).modify_date).to eq adjusted_timestamp
+          it 'writes GPS tags' do
+            system("#{cmd} >/dev/null")
+
+            expect(MiniExiftool.new(dest_file).gps_latitude).to eq %(60 deg 5' 49.54" N)
+            expect(MiniExiftool.new(dest_file).gps_longitude).to eq %(19 deg 56' 5.40" E)
+          end
         end
       end
     end
@@ -534,7 +641,7 @@ RSpec.describe 'photein' do
         expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
           #{dest_dir}
           └── 2021
-              └── 2021-03-12_104032.mp4
+              └── 2021-03-12_234032.mp4
         TREE
       end
 
@@ -559,7 +666,7 @@ RSpec.describe 'photein' do
         expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
           #{dest_dir}
           └── 2021
-              └── 2021-03-12_104032.mp4
+              └── 2021-03-12_234032.mp4
         TREE
       end
     end

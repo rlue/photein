@@ -45,6 +45,35 @@ It can also:
 
 * optimize photos and videos for reduced file size
 * shift all timestamps by a given interval
+  (for when you forget to update the clock on your camera
+  for, _e.g.,_ daylight savings or traveling across time zones)
+* backfill GPS metadata / `OffsetTime*` tags based on a given IANA time zone
+
+  > 🤔 **Why would you want that?**
+  >
+  > One unfortunate quirk of this problem space is that
+  > the EXIF standard does not cover video file formats,
+  > meaning photos and videos do not have the same set of metadata fields.
+  > Worse yet, the field we care about most (timestamps) is inconsistently defined,
+  > with **photo timestamps recorded in local time and video timestamps in UTC**.
+  >
+  > (I haven’t been able to find the text of these specs—supposedly,
+  > they are expensive—but it’s been [stated on a few occasions
+  > by a pretty authoritative member of the Exiftool forum](https://exiftool.org/forum/index.php?msg=51915).
+  > [That same user has noted that](https://exiftool.org/forum/index.php?msg=59329)
+  > “there is no standard for embedding EXIF data in a video file.
+  > Not that that has stopped a lot of camera makers from forcing it into the file.”)
+  >
+  > Photein attempts to set _all_ filenames in local time,
+  > applying an offset to videos based on the time zone inferred
+  > from their GPS location tags—which is only possible if they are present.
+  > Other photo utilities (like [immich](https://immich.app)) follow the same strategy,
+  > meaning that setting GPS tags can improve filename consistency elsewhere, too.
+  >
+  > (What about `OffsetTime*`, then? Those tags are superfluous for our needs
+  > since they can only be set on photos, which are already in local time—but
+  > implementation was straightforward, and they serve the parallel purpose
+  > of backfilling missing time zone info, so I figured what the heck. ¯\\\_(ツ)\_/¯)
 
 What _doesn’t_ it do?
 ---------------------

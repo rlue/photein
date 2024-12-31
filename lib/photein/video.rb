@@ -1,13 +1,16 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'json'
 require 'time'
 
 require 'photein/media_file'
+require 'active_support/core_ext/string/zones'
+require 'active_support/core_ext/time/zones'
+require 'active_support/values/time_zone'
 require 'mediainfo'
 require 'mini_exiftool'
 require 'streamio-ffmpeg'
-require 'tzinfo'
 require 'wheretz'
 require_relative '../../vendor/terminal-size/lib/terminal-size'
 
@@ -70,22 +73,51 @@ module Photein
 
     # Video timestamps are typically UTC, and must be adjusted to local TZ.
     # Look for GPS tags first, then default to system local TZ.
-    def metadata_stamp
-      exif = MiniExiftool.new(path.to_s)
-
-      MediaInfo.from(path.to_s).general.encoded_date&.then do |utc_timestamp|
-        if exif.gps_latitude && exif.gps_longitude
-          WhereTZ.get(*gps_coords(exif)).to_local(utc_timestamp)
-        else
-          utc_timestamp.getlocal
-        end
-      end
+    def timestamp_from_metadata
+      MediaInfo.from(path.to_s).general.encoded_date
     rescue MediaInfo::EnvironmentError
       Photein.logger.error('mediainfo is required to read timestamp metadata')
       raise
     end
 
+    # NOTE: This may be largely unnecessary:
+    # metadata timestamps are generally present in all cases except WhatsApp
+    def timestamp_from_filename
+      path.basename(path.extname).to_s.then do |filename|
+        case filename
+        when /^LINE_MOVIE_\d{13}$/ # LINE: UNIX time in milliseconds (at download)
+          local_tz.strptime(filename[0..-4], 'LINE_MOVIE_%s')
+        when /^VID-\d{8}-WA\d{4}$/ # WhatsApp: date + counter (at receipt)
+          local_tz.strptime(filename, 'VID-%Y%m%d-WA%M%S')
+        when /^VID_\d{8}_\d{6}_\d{3}$/ # Telegram: datetime in milliseconds (at download)
+          local_tz.strptime(filename, 'VID_%Y%m%d_%H%M%S_%L')
+        when /^signal-\d{4}-\d{2}-\d{2}-\d{6}( \(\d+\))?$/ # Signal: datetime + optional counter (at receipt)
+          local_tz.strptime(filename[0, 24], 'signal-%F-%H%M%S')
+        else
+          super&.asctime&.in_time_zone(local_tz)
+        end
+      end&.utc
+    end
+
+    def timestamp_from_filesystem
+      super.asctime.in_time_zone(local_tz).utc
+    end
+
+    def dest_filename
+      @dest_filename ||= local_tz.tzinfo.to_local(new_timestamp).strftime(DATE_FORMAT)
+    end
+
+    def local_tz
+      @local_tz ||= ActiveSupport::TimeZone[
+        MiniExiftool.new(path).then(&method(:gps_coords))&.then(&method(:coords_to_tz)) ||
+        Photein::Config.local_tz ||
+        Time.now.gmt_offset
+      ]
+    end
+
     def gps_coords(exif)
+      return nil if exif.gps_latitude.nil? || exif.gps_longitude.nil?
+
       [exif.gps_latitude, exif.gps_longitude].map do |str|
         # `str' follows the format %(xx deg xx' xx.xx" x)
         str.split(/[^\d.NESW]+/).then do |deg, min, sec, dir|
@@ -94,23 +126,9 @@ module Photein
       end
     end
 
-    # NOTE: This may be largely unnecessary:
-    # metadata timestamps are generally present in all cases except WhatsApp
-    def filename_stamp
-      path.basename(path.extname).to_s.then do |filename|
-        case filename
-        when /^LINE_MOVIE_\d{13}$/ # LINE: UNIX time in milliseconds (at download)
-          Time.strptime(filename[0..-4], 'LINE_MOVIE_%s')
-        when /^VID-\d{8}-WA\d{4}$/ # WhatsApp: date + counter (at receipt)
-          Time.strptime(filename, 'VID-%Y%m%d-WA%M%S')
-        when /^VID_\d{8}_\d{6}_\d{3}$/ # Telegram: datetime in milliseconds (at download)
-          Time.strptime(filename, 'VID_%Y%m%d_%H%M%S_%L')
-        when /^signal-\d{4}-\d{2}-\d{2}-\d{6}( \(\d+\))?$/ # Signal: datetime + optional counter (at receipt)
-          Time.strptime(filename[0, 24], 'signal-%F-%H%M%S')
-        else
-          super
-        end
-      end
+    def coords_to_tz(coords)
+      # WhereTZ::get() can return a single element OR an array -_-'
+      Array(WhereTZ.get(coords[0], coords[1])).first
     end
 
     def display_progress_bar(progress)
@@ -123,6 +141,20 @@ module Photein
       bg_len       = bar_len - progress_len
       progress_bar = "[#{'#' * progress_len}#{'-' * bg_len}]#{percentage}"
       print "#{progress_bar}\r"
+    end
+
+    def update_exif_tags(path)
+      return if Photein::Config.timestamp_delta.zero? && Photein::Config.local_tz.nil?
+
+      args = []
+      args.push("-AllDates=#{new_timestamp.strftime('%Y:%m:%d\\ %H:%M:%S')}") if Photein::Config.timestamp_delta != 0
+
+      if (lat, lon = Photein::Config.tz_coordinates)
+        args.push("-xmp:GPSLatitude=#{lat}")
+        args.push("-xmp:GPSLongitude=#{lon}")
+      end
+
+      system("exiftool -overwrite_original #{args.join(' ')} #{path}", out: File::NULL, err: File::NULL)
     end
   end
 end

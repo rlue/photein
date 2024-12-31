@@ -63,7 +63,7 @@ module Photein
       raise
     end
 
-    def metadata_stamp
+    def timestamp_from_metadata
       MiniExiftool.new(path.to_s).date_time_original
     rescue MiniExiftool::Error => e
       Photein.logger.error(<<~MSG) if e.message.match?(/exiftool: not found/)
@@ -74,7 +74,7 @@ module Photein
 
     # NOTE: This may be largely unnecessary:
     # metadata timestamps are generally present in all cases except WhatsApp
-    def filename_stamp
+    def timestamp_from_filename
       path.basename(path.extname).to_s.then do |filename|
         case filename
         when /^IMG_\d{8}_\d{6}(_\d{3})?$/ # Android DCIM: datetime + optional counter
@@ -99,6 +99,26 @@ module Photein
       return true if lib_type == :web && extname == '.dng'
 
       return false
+    end
+
+    def update_exif_tags(path)
+      return if Photein::Config.timestamp_delta.zero? && Photein::Config.local_tz.nil?
+
+      file = MiniExiftool.new(path)
+      file.all_dates = new_timestamp.strftime('%Y:%m:%d %H:%M:%S') if Photein::Config.timestamp_delta != 0
+
+      if !Photein::Config.local_tz.nil?
+        new_timestamp.to_s                                           # "2020-02-14 22:55:30 -0800"
+          .split.tap(&:pop).join(' ').then { |time| time + ' UTC' }  # "2020-02-14 22:55:30 UTC"
+          .then(&Time.method(:parse))                                # 2020-02-14 22:55:30 UTC
+          .then(&Photein::Config.local_tz.method(:to_local))         # 2020-02-14 22:55:30 +0800
+          .strftime('%z').insert(3, ':')                             # "+08:00"
+          .tap { |offset| file.offset_time = offset }
+          .tap { |offset| file.offset_time_digitized = offset }
+          .tap { |offset| file.offset_time_original = offset }
+      end
+
+      file.save!
     end
   end
 end

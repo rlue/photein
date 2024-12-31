@@ -28,11 +28,10 @@ module Photein
         next if non_optimizable_format?(lib_type)
 
         Thread.new do
-          dest_basename = timestamp.strftime(DATE_FORMAT)
           dest_extname  = self.class::OPTIMIZATION_FORMAT_MAP.dig(lib_type, extname) || extname
           dest_path     = lib_path
-                          .join(timestamp.strftime('%Y'))
-                          .join("#{dest_basename}#{dest_extname}")
+                          .join(Time.parse(dest_filename).strftime('%Y'))
+                          .join("#{dest_filename}#{dest_extname}")
                           .then(&method(:resolve_name_collision))
           tempfile      = Pathname(Dir.tmpdir)
                           .join('photein').join(lib_type.to_s)
@@ -54,11 +53,7 @@ module Photein
             FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
           end
 
-          if !Photein::Config.timestamp_delta.zero? && !Photein::Config.dry_run
-            MiniExiftool.new(dest_path.to_s) # TODO: Drop `.to_s` after https://github.com/janfri/mini_exiftool/issues/50 is resolved
-                        .tap { |file| file.all_dates = timestamp.strftime('%Y:%m:%d %H:%M:%S') }
-                        .save!
-          end
+          update_exif_tags(dest_path.realdirpath.to_s) if !Photein::Config.dry_run
         end
       end.compact.map(&:join).then do |threads|
         # e.g.: with --library-web only, .dngs are skipped, so DON'T DELETE!
@@ -93,18 +88,32 @@ module Photein
       false
     end
 
-    def timestamp
-      @timestamp ||= (metadata_stamp || filename_stamp) + Photein::Config.timestamp_delta
+    def new_timestamp
+      @new_timestamp ||= (
+        timestamp_from_metadata ||
+        timestamp_from_filename ||
+        timestamp_from_filesystem
+      ) + Photein::Config.timestamp_delta
     end
 
-    def filename_stamp
+    def timestamp_from_metadata
+      raise NotImplementedError
+    end
+
+    def timestamp_from_filename
       Time.parse(path.basename(path.extname).to_s)
     rescue ArgumentError
-      begin
-        File.birthtime(path)
-      rescue NotImplementedError
-        File.mtime(path)
-      end
+      nil
+    end
+
+    def timestamp_from_filesystem
+      File.birthtime(path)
+    rescue NotImplementedError
+      File.mtime(path)
+    end
+
+    def dest_filename
+      @dest_filename ||= new_timestamp.strftime(DATE_FORMAT)
     end
 
     def extname
@@ -127,6 +136,10 @@ module Photein
                   .tap { |counter| raise 'Unresolved timestamp conflict' unless counter&.match?(/^\+[1-8]$/) }
                   .then { |counter| pathname.sub_ext("#{counter.next}#{pathname.extname}") }
       end
+    end
+
+    def update_exif_tags(path)
+      raise NotImplementedError
     end
 
     class << self

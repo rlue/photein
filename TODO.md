@@ -1,8 +1,5 @@
 * Make sure all metadata is always preserved across downscaling / re-encoding
 
-* Support `--geotag` option
-  (accept GPS lat/lon OR IANA TZ identifier)
-
 * Support custom filename templates
 
 * Address crash from panoramas
