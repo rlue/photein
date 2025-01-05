@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photein (0.2.4)
+    photein (0.2.5)
       activesupport (~> 8.0)
       logger (~> 1.6)
       mediainfo (~> 1.5)
