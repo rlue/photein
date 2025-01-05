@@ -39,12 +39,12 @@ module Photein
           convert.resize("#{MAX_RES_WEB}@>")
           convert.sampling_factor('4:2:0')
           convert << tempfile
-        end unless Photein::Config.dry_run
+        end unless config.dry_run
       when '.png'
-        FileUtils.cp(path, tempfile, noop: Photein::Config.dry_run)
+        FileUtils.cp(path, tempfile, noop: config.dry_run)
         Photein.logger.info "optimizing #{path}"
         begin
-          Optipng.optimize(tempfile, level: 4) unless Photein::Config.dry_run
+          Optipng.optimize(tempfile, level: 4) unless config.dry_run
         rescue Errno::ENOENT
           Photein.logger.error('optipng is required to compress PNG images')
           raise
@@ -102,16 +102,16 @@ module Photein
     end
 
     def update_exif_tags(path)
-      return if Photein::Config.timestamp_delta.zero? && Photein::Config.local_tz.nil?
+      return if config.timestamp_delta.zero? && config.local_tz.nil?
 
       file = MiniExiftool.new(path)
-      file.all_dates = new_timestamp.strftime('%Y:%m:%d %H:%M:%S') if Photein::Config.timestamp_delta != 0
+      file.all_dates = new_timestamp.strftime('%Y:%m:%d %H:%M:%S') if config.timestamp_delta != 0
 
-      if !Photein::Config.local_tz.nil?
+      if !config.local_tz.nil?
         new_timestamp.to_s                                           # "2020-02-14 22:55:30 -0800"
           .split.tap(&:pop).join(' ').then { |time| time + ' UTC' }  # "2020-02-14 22:55:30 UTC"
           .then(&Time.method(:parse))                                # 2020-02-14 22:55:30 UTC
-          .then(&Photein::Config.local_tz.method(:to_local))         # 2020-02-14 22:55:30 +0800
+          .then(&config.local_tz.method(:to_local))                  # 2020-02-14 22:55:30 +0800
           .strftime('%z').insert(3, ':')                             # "+08:00"
           .tap { |offset| file.offset_time = offset }
           .tap { |offset| file.offset_time_digitized = offset }

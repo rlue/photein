@@ -13,18 +13,20 @@ module Photein
       '.jpeg' => '.jpg'
     }.freeze
 
+    attr_reader :config
     attr_reader :path
 
-    def initialize(path)
+    def initialize(path, params = {})
       @path = Pathname(path)
+      @config = Photein::Config.with(params)
     end
 
     def import
       return if corrupted?
-      return if Photein::Config.interactive && denied_by_user?
-      return if Photein::Config.safe && in_use?
+      return if config.interactive && denied_by_user?
+      return if config.safe && in_use?
 
-      Photein::Config.destinations.map do |lib_type, lib_path|
+      config.destinations.map do |lib_type, lib_path|
         next if non_optimizable_format?(lib_type)
 
         Thread.new do
@@ -41,23 +43,23 @@ module Photein
           optimize(tempfile: tempfile, lib_type: lib_type)
 
           Photein.logger.info(<<~MSG.chomp)
-            #{Photein::Config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
+            #{config.keep ? 'copying' : 'moving'} #{path.basename} to #{dest_path}
           MSG
 
-          FileUtils.mkdir_p(dest_path.dirname, noop: Photein::Config.dry_run)
+          FileUtils.mkdir_p(dest_path.dirname, noop: config.dry_run)
 
           if File.exist?(tempfile)
-            FileUtils.mv(tempfile, dest_path, noop: Photein::Config.dry_run)
+            FileUtils.mv(tempfile, dest_path, noop: config.dry_run)
           else
-            FileUtils.cp(path, dest_path, noop: Photein::Config.dry_run)
-            FileUtils.chmod('-x', dest_path, noop: Photein::Config.dry_run)
+            FileUtils.cp(path, dest_path, noop: config.dry_run)
+            FileUtils.chmod('-x', dest_path, noop: config.dry_run)
           end
 
-          update_exif_tags(dest_path.realdirpath.to_s) if !Photein::Config.dry_run
+          update_exif_tags(dest_path.realdirpath.to_s) if !config.dry_run
         end
       end.compact.map(&:join).then do |threads|
         # e.g.: with --library-web only, .dngs are skipped, so DON'T DELETE!
-        FileUtils.rm(path, noop: threads.empty? || Photein::Config.dry_run || Photein::Config.keep)
+        FileUtils.rm(path, noop: threads.empty? || config.dry_run || config.keep)
       end
     end
 
@@ -93,7 +95,7 @@ module Photein
         timestamp_from_metadata ||
         timestamp_from_filename ||
         timestamp_from_filesystem
-      ) + Photein::Config.timestamp_delta
+      ) + config.timestamp_delta
     end
 
     def timestamp_from_metadata

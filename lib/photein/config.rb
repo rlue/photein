@@ -1,15 +1,12 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'singleton'
 require 'optparse'
 
 require 'tzinfo'
 
 module Photein
   class Config
-    include Singleton
-
     OPTIONS = [
       ['-v',             '--verbose',                 'print verbose output'],
       ['-s SOURCE',      '--source=SOURCE',           'path to the source directory'],
@@ -38,11 +35,77 @@ module Photein
       .then(&JSON.method(:parse))
       .freeze
 
-    @params = {}
+    def initialize(params = {})
+      @params = params
+    end
+
+    def validate_params!
+      puts self.dry_run
+      @params[:verbose] ||= @params[:'dry-run']
+
+      if @params.key?(:'shift-timestamp') && !@params[:'shift-timestamp'].match?(/^-?\d+$/)
+        raise "invalid --shift-timestamp option (must be integer)"
+      end
+
+      if @params.key?(:'local-tz')
+        if !TZInfo::Timezone.all_identifiers.include?(@params[:'local-tz'])
+          raise 'invalid --local-tz option (must be from IANA tz database)'
+        end
+
+        if tz_coordinates.nil?
+          raise 'invalid --local-tz option (must reference a location)'
+        end
+      end
+
+      @params.freeze
+
+      raise "no source directory given" if !@params.key?(:source)
+      (%i[library-master library-desktop library-web] & @params.keys)
+        .then { |dest_dirs| raise "no destination directory given" if dest_dirs.empty? }
+    end
+
+    def method_missing(m, *args, &blk)
+      case m = m.to_s.tr('_', '-').to_sym
+      when *OPTION_NAMES
+        @params[m]
+      when *OPTION_NAMES.map { |opt| "#{opt}=" }.map(&:to_sym)
+        @params[m.sub(/=$/, '')] = args.shift
+      else
+        super
+      end
+    end
+
+    def respond_to_missing?(m, *args)
+      OPTION_NAMES.include?(m.to_s.tr('_', '-').sub(/=$/, '').to_sym) || super
+    end
+
+    def source
+      @source ||= Pathname(@params[:source])
+    end
+
+    def destinations
+      @destinations ||= {
+        master:  @params[:'library-master'],
+        desktop: @params[:'library-desktop'],
+        web:     @params[:'library-web']
+      }.compact.transform_values(&Pathname.method(:new))
+    end
+
+    def timestamp_delta
+      @timestamp_delta ||= @params[:'shift-timestamp'].to_i * SECONDS_PER_HOUR
+    end
+
+    def local_tz
+      @local_tz ||= @params[:'local-tz']&.then(&TZInfo::Timezone.method(:get))
+    end
+
+    def tz_coordinates
+      @tz_coordinates ||= TZ_GEOCOORDS[@params[:'local-tz']]
+    end
 
     class << self
-      def set(**params)
-        @params.replace(params)
+      def base_config
+        @base_config ||= Photein::Config.new
       end
 
       def parse_opts!
@@ -53,70 +116,28 @@ module Photein
           BANNER
 
           OPTIONS.each { |opt| opts.on(*opt) }
-        end.tap { |p| p.parse!(into: @params) }
+        end.tap { |p| p.parse!(into: base_config.instance_variable_get('@params')) }
 
-        @params[:verbose] ||= @params[:'dry-run']
-
-        raise "invalid --shift-timestamp option (must be integer)" if @params.key?(:'shift-timestamp') && !@params[:'shift-timestamp'].match?(/^-?\d+$/)
-
-        if @params.key?(:'local-tz')
-          if !TZInfo::Timezone.all_identifiers.include?(@params[:'local-tz'])
-            raise 'invalid --local-tz option (must be from IANA tz database)'
-          end
-
-          if tz_coordinates.nil?
-            raise 'invalid --local-tz option (must reference a location)'
-          end
-        end
-
-        @params.freeze
-
-        raise "no source directory given" if !@params.key?(:source)
-        (%i[library-master library-desktop library-web] & @params.keys)
-          .then { |dest_dirs| raise "no destination directory given" if dest_dirs.empty? }
+        base_config.validate_params!
       rescue => e
         warn("#{parser.program_name}: #{e.message}")
         warn(parser.help) if e.is_a?(OptionParser::ParseError)
         exit 1
       end
 
+      def with(params)
+        new(base_config.instance_variable_get('@params').merge(params))
+          .tap(&:validate_params!)
+      end
+
       def method_missing(m, *args, &blk)
-        case m.to_s.tr('_', '-').to_sym
-        when *OPTION_NAMES
-          @params[m]
-        when *OPTION_NAMES.map { |opt| "#{opt}=" }.map(&:to_sym)
-          @params[m.to_s.sub(/=$/, '').to_sym] = args.shift
-        else
-          super
-        end
+        return super unless m.to_s.tr('_', '-').sub(/=$/, '').to_sym
+
+        base_config.send(m, *args)
       end
 
       def respond_to_missing?(m, *args)
-        OPTION_NAMES.include?(m.to_s.tr('_', '-').sub(/=$/, '').to_sym) || super
-      end
-
-      def source
-        @source ||= Pathname(@params[:source])
-      end
-
-      def destinations
-        @destinations ||= {
-          master:  @params[:'library-master'],
-          desktop: @params[:'library-desktop'],
-          web:     @params[:'library-web']
-        }.compact.transform_values(&Pathname.method(:new))
-      end
-
-      def timestamp_delta
-        @timestamp_delta ||= @params[:'shift-timestamp'].to_i * SECONDS_PER_HOUR
-      end
-
-      def local_tz
-        @local_tz ||= @params[:'local-tz']&.then(&TZInfo::Timezone.method(:get))
-      end
-
-      def tz_coordinates
-        @tz_coordinates ||= TZ_GEOCOORDS[@params[:'local-tz']]
+        base_config.respond_to?(m) || super
       end
     end
   end

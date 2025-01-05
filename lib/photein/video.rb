@@ -44,7 +44,7 @@ module Photein
       return if video.bitrate < BITRATE_THRESHOLD[lib_type]
 
       Photein.logger.info("transcoding #{tempfile}")
-      return if Photein::Config.dry_run
+      return if config.dry_run
 
       video.transcode(
         tempfile.to_s,
@@ -110,7 +110,7 @@ module Photein
     def local_tz
       @local_tz ||= ActiveSupport::TimeZone[
         MiniExiftool.new(path).then(&method(:gps_coords))&.then(&method(:coords_to_tz)) ||
-        Photein::Config.local_tz ||
+        config.local_tz ||
         Time.now.gmt_offset
       ]
     end
@@ -144,12 +144,12 @@ module Photein
     end
 
     def update_exif_tags(path)
-      return if Photein::Config.timestamp_delta.zero? && Photein::Config.local_tz.nil?
+      return if config.timestamp_delta.zero? && config.local_tz.nil?
 
       args = []
-      args.push("-AllDates=#{new_timestamp.strftime('%Y:%m:%d\\ %H:%M:%S')}") if Photein::Config.timestamp_delta != 0
+      args.push("-AllDates=#{new_timestamp.strftime('%Y:%m:%d\\ %H:%M:%S')}") if config.timestamp_delta != 0
 
-      if (lat, lon = Photein::Config.tz_coordinates)
+      if (lat, lon = config.tz_coordinates)
         args.push("-xmp:GPSLatitude=#{lat}")
         args.push("-xmp:GPSLongitude=#{lon}")
       end
