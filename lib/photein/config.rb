@@ -125,6 +125,11 @@ module Photein
         exit 1
       end
 
+      # Do not remove! Used in https://github.com/rlue/xferase
+      def set(**params)
+        base_config.instance_variable_get('@params').replace(params)
+      end
+
       def with(params)
         new(base_config.instance_variable_get('@params').merge(params))
           .tap(&:validate_params!)
