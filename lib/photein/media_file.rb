@@ -16,9 +16,9 @@ module Photein
     attr_reader :config
     attr_reader :path
 
-    def initialize(path, params = {})
+    def initialize(path, opts: {})
       @path = Pathname(path)
-      @config = Photein::Config.with(params)
+      @config = Photein::Config.with(opts)
     end
 
     def import
@@ -145,13 +145,13 @@ module Photein
     end
 
     class << self
-      def for(file)
+      def for(file, opts: {})
         file = Pathname(file)
         raise Errno::ENOENT, "#{file}" unless file.exist?
 
         [Image, Video].find { |type| type::SUPPORTED_FORMATS.include?(file.extname.downcase) }
                       .tap { |type| raise ArgumentError, "#{file}: Invalid media file" if type.nil? }
-                      .then { |type| type.new(file) }
+                      .then { |type| type.new(file, opts: opts) }
       end
     end
   end
