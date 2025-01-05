@@ -130,8 +130,10 @@ module Photein
         base_config.instance_variable_get('@params').replace(params)
       end
 
-      def with(params)
-        new(base_config.instance_variable_get('@params').merge(params))
+      def with(opts)
+        opts.transform_keys { |k| k.to_s.tr('_', '-').to_sym }
+          .then(&base_config.instance_variable_get('@params').method(:merge))
+          .then(&Photein::Config.method(:new))
           .tap(&:validate_params!)
       end
 
