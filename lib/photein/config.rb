@@ -40,7 +40,6 @@ module Photein
     end
 
     def validate_params!
-      puts self.dry_run
       @params[:verbose] ||= @params[:'dry-run']
 
       if @params.key?(:'shift-timestamp') && !@params[:'shift-timestamp'].match?(/^-?\d+$/)
@@ -59,7 +58,6 @@ module Photein
 
       @params.freeze
 
-      raise "no source directory given" if !@params.key?(:source)
       (%i[library-master library-desktop library-web] & @params.keys)
         .then { |dest_dirs| raise "no destination directory given" if dest_dirs.empty? }
     end
@@ -117,6 +115,11 @@ module Photein
 
           OPTIONS.each { |opt| opts.on(*opt) }
         end.tap { |p| p.parse!(into: base_config.instance_variable_get('@params')) }
+
+        # This param is only required on the base config
+        if !base_config.instance_variable_get('@params').key?(:source)
+          raise "no source directory given"
+        end
 
         base_config.validate_params!
       rescue => e
