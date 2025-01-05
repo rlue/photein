@@ -80,17 +80,19 @@ module Photein
         exit 1
       end
 
-      def [](key)
-        @params[key]
-      end
-
       def method_missing(m, *args, &blk)
-        m.to_s.tr('_', '-').to_sym
-          .then { |key| OPTION_NAMES.include?(key) ? self[key] : super }
+        case m.to_s.tr('_', '-').to_sym
+        when *OPTION_NAMES
+          @params[m]
+        when *OPTION_NAMES.map { |opt| "#{opt}=" }.map(&:to_sym)
+          @params[m.to_s.sub(/=$/, '').to_sym] = args.shift
+        else
+          super
+        end
       end
 
       def respond_to_missing?(m, *args)
-        @params.key?(m.to_s.tr('_', '-').to_sym) || super
+        OPTION_NAMES.include?(m.to_s.tr('_', '-').sub(/=$/, '').to_sym) || super
       end
 
       def source
@@ -110,15 +112,11 @@ module Photein
       end
 
       def local_tz
-        return @local_tz if defined? @local_tz
-
-        @local_tz = @params.key?(:'local-tz') ? TZInfo::Timezone.get(@params[:'local-tz']) : nil
+        @local_tz ||= @params[:'local-tz']&.then(&TZInfo::Timezone.method(:get))
       end
 
       def tz_coordinates
-        return @tz_coordinates if defined? @tz_coordinates
-
-        @tz_coordinates = @params.key?(:'local-tz') ? TZ_GEOCOORDS[@params[:'local-tz']] : nil
+        @tz_coordinates ||= TZ_GEOCOORDS[@params[:'local-tz']]
       end
     end
   end
