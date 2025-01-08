@@ -106,12 +106,15 @@ $ gem install photein
 * Ruby 2.6+
 * [ExifTool][]
 * [MediaInfo][]
+files)
 * ImageMagick (for `--optimize-for=web` option)
 * OptiPNG (for `--optimize-for=web` option)
 * ffmpeg (for `--optimize-for={web,desktop}` options)
+* [mkvtoolnix][] (for `--shift-timestamp` / `--local-tz` options on .webm
 
 [ExifTool]: https://exiftool.org/
 [MediaInfo]: https://mediaarea.net/MediaInfo
+[mkvtoolnix]: https://mkvtoolnix.download/
 
 Usage
 -----
