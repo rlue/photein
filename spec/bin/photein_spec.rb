@@ -209,6 +209,59 @@ RSpec.describe 'photein' do
         end
       end
 
+      context 'with --gps-coords option' do
+        let(:options) do
+          [
+            '--source', source_dir,
+            '--library-master', dest_dir,
+            '--gps-coords', gps_coords
+          ]
+        end
+
+        let(:source_files) { Dir["#{data_dir}/basic/IMG_20200214_225530.jpg"] }
+        let(:gps_coords) { '35.1936727,-89.9331292,18z' }
+        let(:offset) { '-06:00' }
+        let(:dest_file) { "#{dest_dir}/2020/2020-02-14_225530.jpg" }
+
+        it 'does not adjust filename' do
+          system("#{cmd} >/dev/null")
+
+          expect(dest_files).to include dest_file
+        end
+
+        it 'writes OffsetTime* tags' do
+          system("#{cmd} >/dev/null")
+
+          expect(MiniExiftool.new(dest_file).offset_time).to eq offset
+          expect(MiniExiftool.new(dest_file).offset_time_original).to eq offset
+          expect(MiniExiftool.new(dest_file).offset_time_digitized).to eq offset
+        end
+
+        shared_examples 'invalid value' do |type|
+          it "reject #{type}" do
+            _out, err, status = Open3.capture3(cmd)
+
+            expect(err.chomp).to eq("photein: invalid --gps-coords option (#{error_msg})")
+            expect(status.exitstatus).to eq(1)
+          end
+        end
+
+        it_behaves_like 'invalid value', 'DMS (degrees/minutes/seconds) format' do
+          let(:gps_coords) { %(35° 11' 37.22172", 89° 55' 59.26512") }
+          let(:error_msg) { 'must reference a location' }
+        end
+
+        it_behaves_like 'invalid value', 'out-of-range' do
+          let(:gps_coords) { '90.01,-180.01' }
+          let(:error_msg) { 'must be from IANA tz database' }
+        end
+
+        it_behaves_like 'invalid value', 'non-standard format' do
+          let(:gps_coords) { '35.1936727,-89.9331292,18z' }
+          let(:error_msg) { 'must be from IANA tz database' }
+        end
+      end
+
       context 'with --local-tz option' do
         let(:options) do
           [

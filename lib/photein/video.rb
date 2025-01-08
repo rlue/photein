@@ -21,6 +21,7 @@ module Photein
     SUPPORTED_FORMATS = %w(
       .mov
       .mp4
+      .mkv
       .webm
     ).freeze
 
@@ -161,14 +162,28 @@ module Photein
       return if config.timestamp_delta.zero? && config.local_tz.nil?
 
       args = []
-      args.push("-AllDates=#{new_timestamp.strftime('%Y:%m:%d\\ %H:%M:%S')}") if config.timestamp_delta != 0
 
-      if (lat, lon = config.tz_coordinates)
-        args.push("-xmp:GPSLatitude=#{lat}")
-        args.push("-xmp:GPSLongitude=#{lon}")
+      case path.extname
+      when '.mp4', '.mov'
+        args.push("-AllDates=#{new_timestamp.strftime('%Y:%m:%d\\ %H:%M:%S')}") if config.timestamp_delta != 0
+
+        if (lat, lon = config.tz_coordinates)
+          args.push("-xmp:GPSLatitude=#{lat}")
+          args.push("-xmp:GPSLongitude=#{lon}")
+        end
+
+        system("exiftool -overwrite_original #{args.join(' ')} #{path}", out: File::NULL, err: File::NULL)
+      when '.webm', '.mkv'
+        args.concat(['--set', "date=#{new_timestamp.strftime('%FT%H:%M:%SZ')}"]) if config.timestamp_delta != 0
+
+        # FIXME
+        if (lat, lon = config.tz_coordinates)
+          args.push("-xmp:GPSLatitude=#{lat}")
+          args.push("-xmp:GPSLongitude=#{lon}")
+        end
+
+        system("mkvpropedit #{path}  #{args.join(' ')}", out: File::NULL, err: File::NULL)
       end
-
-      system("exiftool -overwrite_original #{args.join(' ')} #{path}", out: File::NULL, err: File::NULL)
     end
   end
 end
