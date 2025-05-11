@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'activesupport', '~> 8.0'
   s.add_dependency 'logger', '~> 1.6'
   s.add_dependency 'mediainfo', '~> 1.5'
-  s.add_dependency 'mini_exiftool', '~> 2.10'
+  s.add_dependency 'mini_exiftool', '~> 2.14'
   s.add_dependency 'mini_magick', '~> 4.11'
   s.add_dependency 'nokogiri', '~> 1.11'
   s.add_dependency 'optipng', '~> 0.2'
