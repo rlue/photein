@@ -111,7 +111,20 @@ module Photein
       @local_tz ||= ActiveSupport::TimeZone[
         MiniExiftool.new(path).then(&method(:gps_coords))&.then(&method(:coords_to_tz)) ||
         config.local_tz ||
-        Time.now.gmt_offset
+        # Hardcode common zones that observe DST
+        # (Time.now.gmt_offset produces the wrong value during DST)
+        {
+           'PST' => 'America/Los_Angeles',
+           'PDT' => 'America/Los_Angeles',
+           'EST' => 'America/New_York',
+           'EDT' => 'America/New_York',
+           'CST' => 'America/Chicago',
+           'CDT' => 'America/Chicago',
+           'MST' => 'America/Denver',
+           'MDT' => 'America/Denver',
+           'GMT' => 'Europe/London',
+           'BST' => 'Europe/London',
+        }.fetch(Time.now.zone, Time.now.gmt_offset)
       ]
     end
 
