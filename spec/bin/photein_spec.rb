@@ -304,6 +304,47 @@ RSpec.describe 'photein' do
       end
     end
 
+    context 'for RAFs' do
+      let(:source_files) { Dir["#{data_dir}/basic/*.RAF"] }
+
+      it 'moves them from source to dest' do
+        expect { system("#{cmd} >/dev/null") }
+          .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+        expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+          #{dest_dir}
+          └── 2007
+              └── 2007-05-20_112608.raf
+        TREE
+      end
+
+      context 'with --library-desktop option' do
+        let(:options) { ['--source', source_dir, '--library-desktop', dest_dir] }
+
+        it 'moves them from source to dest' do
+          expect { system("#{cmd} >/dev/null") }
+            .to change { Dir.empty?(source_dir) }.from(false).to(true)
+
+          expect(`tree --noreport #{dest_dir}`).to eq(<<~TREE)
+            #{dest_dir}
+            └── 2007
+                └── 2007-05-20_112608.raf
+          TREE
+        end
+      end
+
+      context 'with --library-web option' do
+        let(:options) { ['--source', source_dir, '--library-web', dest_dir] }
+
+        it 'skips import' do
+          expect { system("#{cmd} >/dev/null 2>&1") }
+            .not_to(change { `tree --noreport #{source_dir}` })
+
+          expect(Dir.exist?(dest_dir)).to be(false)
+        end
+      end
+    end
+
     context 'for HEICs' do
       let(:source_files) { Dir["#{data_dir}/basic/*.HEIC"] }
 

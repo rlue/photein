@@ -14,6 +14,7 @@ module Photein
       .jpg
       .jpeg
       .dng
+      .raf
       .heic
       .png
     ).freeze
@@ -96,7 +97,7 @@ module Photein
     end
 
     def non_optimizable_format?(lib_type)
-      return true if lib_type == :web && extname == '.dng'
+      return true if lib_type == :web && %w(.dng .raf).include?(extname)
 
       return false
     end

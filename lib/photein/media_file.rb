@@ -58,7 +58,7 @@ module Photein
           update_exif_tags(dest_path.realdirpath.to_s) if !config.dry_run
         end
       end.compact.map(&:join).then do |threads|
-        # e.g.: with --library-web only, .dngs are skipped, so DON'T DELETE!
+        # e.g.: with --library-web only, raw files are skipped, so DON'T DELETE!
         FileUtils.rm(path, noop: threads.empty? || config.dry_run || config.keep)
       end
     end
