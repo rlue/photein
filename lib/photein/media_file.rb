@@ -52,9 +52,9 @@ module Photein
             FileUtils.mv(tempfile, dest_path, noop: config.dry_run)
           else
             FileUtils.cp(path, dest_path, noop: config.dry_run)
-            FileUtils.chmod('-x', dest_path, noop: config.dry_run)
           end
 
+          FileUtils.chmod('0644', dest_path, noop: config.dry_run)
           update_exif_tags(dest_path.realdirpath.to_s) if !config.dry_run
         end
       end.compact.map(&:join).then do |threads|
