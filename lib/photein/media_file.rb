@@ -55,7 +55,7 @@ module Photein
           end
 
           FileUtils.chmod(0644, dest_path, noop: config.dry_run)
-          update_exif_tags(dest_path.realdirpath.to_s) if !config.dry_run
+          update_exif_tags(dest_path.realdirpath) if !config.dry_run
         end
       end.compact.map(&:join).then do |threads|
         # e.g.: with --library-web only, raw files are skipped, so DON'T DELETE!
