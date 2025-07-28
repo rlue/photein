@@ -74,7 +74,8 @@ module Photein
     # Video timestamps are typically UTC, and must be adjusted to local TZ.
     # Look for GPS tags first, then default to system local TZ.
     def timestamp_from_metadata
-      MediaInfo.from(path.to_s).general.encoded_date
+      MediaInfo.from(path.to_s).general.recorded_date ||
+        MediaInfo.from(path.to_s).general.encoded_date
     rescue MediaInfo::EnvironmentError
       Photein.logger.error('mediainfo is required to read timestamp metadata')
       raise
